@@ -8,7 +8,7 @@ const autoRespawn = true
 const autoSquish = true
 const autoStalk = true
 const preyAtkMax = 50
-const preyXpMin = 500
+const preyXpMin = 400
 const rangeKite = character.range * 0.8
 const rangeMelee = character.range * 0.5
 const rangeStalk = character.range * 0.9
@@ -30,7 +30,7 @@ function tick() {
   //
   // RADAR
   //
-  const thisMob = get_targeted_monster()
+  const lockMob = get_targeted_monster()
   const aggroMob = getNearestMonster({ target: character })
   const preyMob = getNearestMonster({ min_xp: preyXpMin, max_att: preyAtkMax, path_check: true })
   const squishMob = getNearestMonster({ max_hp: character.attack * 0.9 })
@@ -40,31 +40,32 @@ function tick() {
   //
   let mobToAttack = null
   if (
-    iAmTargetOf(thisMob) &&
+    iAmTargetOf(lockMob) &&
     (autoAttack || autoDefend) &&
-    (autoStalk || is_in_range(thisMob, 'attack'))
+    (autoStalk || is_in_range(lockMob, 'attack'))
   ) {
-    set_message('this')
-    mobToAttack = thisMob
+    set_message('lock')
+    mobToAttack = lockMob
   } else if (aggroMob && autoDefend) {
     set_message('aggro')
     mobToAttack = aggroMob
-  } else if (preyMob && autoAttack && character.hp === character.max_hp) {
+  } else if (preyMob && autoAttack && character.hp > character.max_hp * 0.9) {
     set_message('prey')
     mobToAttack = preyMob
   } else if (squishMob && autoSquish && is_in_range(squishMob, 'attack')) {
     set_message('squish')
     mobToAttack = squishMob
+  } else {
+    set_message('none')
   }
   if (
-    mobToAttack &&
-    is_in_range(mobToAttack) &&
-    !is_on_cooldown('attack') &&
+    can_attack(mobToAttack) &&
     (distance(character, mobToAttack) > rangeMelee ||
       mobToAttack === squishMob ||
       mobToAttack === aggroMob)
-  )
+  ) {
     attack(mobToAttack)
+  }
 
   //
   // MOVEMENT
@@ -91,7 +92,7 @@ function tick() {
 }
 
 const getNearestMonster = (args = {}) => {
-  let min_d = Infinity,
+  let min_d = 999999,
     result = null
   for (id in parent.entities) {
     const mob = parent.entities[id]
