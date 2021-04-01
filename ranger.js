@@ -9,11 +9,12 @@ const autoSquish = true
 const autoStalk = true
 const preyAtkMax = 50
 const preyXpMin = 400
-const rangeKite = character.range * 0.8
-const rangeMelee = character.range * 0.5
+const rangeChunk = character.range * 0.8
+const rangeKite = character.range * 0.7
+const rangeMelee = character.range * 0.3
+const rangeRadar = character.range * 20
 const rangeStalk = character.range * 0.9
 const tickDelay = 250
-const pathChunk = character.range * 0.6
 
 let kitingMob = null
 let moveDirection = 'none' // 'none' | 'in' | 'out'
@@ -48,7 +49,12 @@ function tick() {
   } else if (aggroMob && autoDefend) {
     set_message('aggro')
     mobToAttack = aggroMob
-  } else if (preyMob && autoAttack && character.hp > character.max_hp * 0.9) {
+  } else if (
+    preyMob &&
+    autoAttack &&
+    character.hp > character.max_hp * 0.9 &&
+    preyMob.speed < character.speed
+  ) {
     set_message('prey')
     mobToAttack = preyMob
   } else if (squishMob && autoSquish && is_in_range(squishMob, 'attack')) {
@@ -73,8 +79,8 @@ function tick() {
   else if (autoKite && aggroMob && distance(character, aggroMob) <= rangeKite) kite(aggroMob)
   else if (autoStalk && mobToAttack) {
     if (!is_moving(character)) {
-      if (!is_in_range(mobToAttack, 'attack')) moveToward(mobToAttack, pathChunk)
-      else if (distance(character, mobToAttack) <= rangeMelee) moveToward(mobToAttack, -pathChunk)
+      if (!is_in_range(mobToAttack, 'attack')) moveToward(mobToAttack, rangeChunk)
+      else if (distance(character, mobToAttack) <= rangeMelee) moveToward(mobToAttack, -rangeChunk)
     } else if (
       distance(character, mobToAttack) >= rangeKite &&
       distance(character, mobToAttack) <= rangeStalk
@@ -87,7 +93,7 @@ function tick() {
 
 const kite = mob => {
   kitingMob = mob
-  moveToward(mob, -pathChunk)
+  moveToward(mob, -rangeChunk)
 }
 const stopKiting = () => {
   stop()
@@ -95,7 +101,7 @@ const stopKiting = () => {
   moveDirection = 'none'
 }
 const getNearestMonster = (args = {}) => {
-  let min_d = 999999,
+  let min_d = rangeRadar,
     result = null
   for (id in parent.entities) {
     const mob = parent.entities[id]
@@ -116,7 +122,7 @@ const getNearestMonster = (args = {}) => {
 
 const iAmTargetOf = x => x?.target === character.id
 // const isPrey = x => x?.attack <= preyAtkMax
-const isSquishy = x => x?.hp < character.attack * 0.9
+const isSquishy = x => x?.hp < character.attack * 0.95
 
 const moveToward = (point, distance) => {
   const dx = point.x - character.x
