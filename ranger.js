@@ -1,6 +1,10 @@
 /*
  * Docs: https://github.com/kaansoral/adventureland
  */
+
+//
+// CONFIG
+//
 const autoAttack = true
 const autoDefend = true
 const autoKite = true
@@ -9,18 +13,22 @@ const autoSquish = true
 const autoStalk = true
 const preyAtkMax = 50
 const preyXpMin = 400
-const rangeChunk = character.range * 0.8
+const rangeChunk = character.speed * 1.0
 const rangeKite = character.range * 0.7
-const rangeMelee = character.range * 0.3
-const rangeRadar = character.range * 20
+const rangeMelee = character.speed * 0.5
+const rangeRadar = character.speed * 20
 const rangeStalk = character.range * 0.9
+const squishyHp = character.attack * 0.95 // "squishy" = one-shot kill
 const tickDelay = 250
 
+//
+// STATE
+//
 let kitingMob = null
-let moveDirection = 'none' // 'none' | 'in' | 'out'
+let moveDirection = 'stop' // 'stop' | 'in' | 'out'
+let whichMob = 'none'
 
 setInterval(tick, tickDelay)
-
 function tick() {
   if (autoRespawn && character.rip) respawn()
   if (character.rip) return
@@ -33,7 +41,7 @@ function tick() {
   const lockMob = get_targeted_monster()
   const aggroMob = getNearestMonster({ target: character })
   const preyMob = getNearestMonster({ min_xp: preyXpMin, max_att: preyAtkMax, path_check: true })
-  const squishMob = getNearestMonster({ max_hp: character.attack * 0.9 })
+  const squishyMob = getNearestMonster({ max_hp: squishyHp })
 
   //
   // ATTACK
@@ -44,29 +52,30 @@ function tick() {
     (autoAttack || autoDefend) &&
     (autoStalk || is_in_range(lockMob, 'attack'))
   ) {
-    set_message('lock')
+    whichMob = 'lock'
     mobToAttack = lockMob
   } else if (aggroMob && autoDefend) {
-    set_message('aggro')
+    whichMob = 'aggro'
     mobToAttack = aggroMob
   } else if (
     preyMob &&
     autoAttack &&
     character.hp > character.max_hp * 0.9 &&
+    !preyMob.dreturn && // damage return (porcupine)
     preyMob.speed < character.speed
   ) {
-    set_message('prey')
+    whichMob = 'prey'
     mobToAttack = preyMob
-  } else if (squishMob && autoSquish && is_in_range(squishMob, 'attack')) {
-    set_message('squish')
-    mobToAttack = squishMob
+  } else if (squishyMob && autoSquish && is_in_range(squishyMob, 'attack')) {
+    whichMob = 'squishy'
+    mobToAttack = squishyMob
   } else {
-    set_message('none')
+    whichMob = 'none'
   }
   if (
     can_attack(mobToAttack) &&
     (distance(character, mobToAttack) > rangeMelee ||
-      mobToAttack === squishMob ||
+      mobToAttack === squishyMob ||
       mobToAttack === aggroMob)
   ) {
     attack(mobToAttack)
@@ -86,9 +95,11 @@ function tick() {
       distance(character, mobToAttack) <= rangeStalk
     ) {
       stop()
-      moveDirection = 'none'
+      moveDirection = 'stop'
     }
   }
+
+  set_message(`${whichMob} · ${moveDirection}`)
 }
 
 const kite = mob => {
@@ -98,7 +109,7 @@ const kite = mob => {
 const stopKiting = () => {
   stop()
   kitingMob = null
-  moveDirection = 'none'
+  moveDirection = 'stop'
 }
 const getNearestMonster = (args = {}) => {
   let min_d = rangeRadar,
@@ -122,7 +133,7 @@ const getNearestMonster = (args = {}) => {
 
 const iAmTargetOf = x => x?.target === character.id
 // const isPrey = x => x?.attack <= preyAtkMax
-const isSquishy = x => x?.hp < character.attack * 0.95
+const isSquishy = x => x?.hp <= squishyHp
 
 const moveToward = (point, distance) => {
   const dx = point.x - character.x
