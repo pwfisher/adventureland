@@ -1,7 +1,8 @@
 /*
  * Docs: https://github.com/kaansoral/adventureland
  */
-const autoAttack = true
+const autoAttack = false
+const autoDefend = true
 const autoKite = true
 const autoRespawn = true
 const autoStalk = true
@@ -24,7 +25,8 @@ setInterval(function tick() {
 
   if (
     !is_on_cooldown('attack') &&
-    (iAmTargetOf(mob) || (autoAttack && isSafeTarget(mob) && distance(character, mob) > rangeMelee))
+    ((autoDefend && iAmTargetOf(mob)) ||
+      (autoAttack && isSafeTarget(mob) && distance(character, mob) > rangeMelee))
   )
     attack(mob)
 
