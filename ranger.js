@@ -27,13 +27,14 @@ setInterval(function () {
 }, loopTime)
 
 function getTarget() {
-  const current = get_targeted_monster()
-  if (current?.target === myName) return current
+  if (iHaveAggro()) return get_targeted_monster()
 
   const nearbyMob = get_nearest_monster({ min_xp: 1, max_att: maxMobAtk })
   if (nearbyMob) change_target(nearbyMob)
   return nearbyMob
 }
+
+const iHaveAggro = () => get_targeted_monster()?.target === myName
 
 function isSafeTarget(target) {
   return can_attack(target) && target.attack < maxMobAtk
