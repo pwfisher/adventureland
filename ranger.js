@@ -2,44 +2,57 @@
  * Docs: https://github.com/kaansoral/adventureland
  */
 const autoAttack = true
-const autoApproach = false
-const autoRespawn = false
-const myName = 'Longer'
+const autoKite = true
+const autoRespawn = true
+const autoStalk = true
+const mobAtkMax = 50
+const rangeKite = character.range * 0.8
+const rangeMelee = character.range * 0.5
+const rangeStalk = character.range
+const tickDelay = 250
 
-const loopTime = 250
-const maxMobAtk = 50
-
-setInterval(function () {
-  if (autoRespawn && character.rip) respawn
+setInterval(function tick() {
+  if (autoRespawn && character.rip) respawn()
   if (character.rip) return
 
   use_hp_or_mp()
+
   loot()
 
-  const target = getTarget()
+  const mob = getTargetMob()
 
-  if (autoAttack && isSafeTarget(target)) attack(target)
+  if ((autoAttack && isSafeTarget(mob)) || iHaveAggro()) attack(mob)
 
-  if (autoApproach) {
-    if (target && !is_in_range(target)) moveToward(target)
-    if (is_moving(character) && is_in_range(target)) stop()
+  if (autoStalk) {
+    if (mob && !is_in_range(mob, 'attack')) moveToward(mob)
+    if (is_moving(character) && distance(character, mob) < rangeStalk) stop()
   }
-}, loopTime)
 
-function getTarget() {
-  if (iHaveAggro()) return get_targeted_monster()
+  if (autoKite && distance(character, mob) < rangeKite) moveUntoward(mob)
+}, tickDelay)
 
-  const nearbyMob = get_nearest_monster({ min_xp: 1, max_att: maxMobAtk })
-  if (nearbyMob) change_target(nearbyMob)
-  return nearbyMob
+function getTargetMob() {
+  const current = get_targeted_monster()
+  if (iHaveAggro()) return current
+
+  const mob = get_nearest_monster({ min_xp: 1, max_att: mobAtkMax })
+  if (isSafeTarget(mob)) {
+    change_target(mob)
+    return mob
+  }
+  return current
 }
 
-const iHaveAggro = () => get_targeted_monster()?.target === myName
+const iHaveAggro = () => get_targeted_monster()?.target === character.id
 
-function isSafeTarget(target) {
-  return can_attack(target) && target.attack < maxMobAtk
+function isSafeTarget(mob) {
+  return can_attack(mob) && mob.attack < mobAtkMax && distance(character, mob) > rangeMelee
 }
 
 function moveToward(target) {
   move(character.x + (target.x - character.x) / 2, character.y + (target.y - character.y) / 2)
+}
+
+function moveUntoward(target) {
+  move(character.x - (target.x - character.x), character.y - (target.y - character.y))
 }
