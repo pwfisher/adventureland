@@ -10,7 +10,7 @@ const mobAtkMax = 50
 const rangeKite = character.range * 0.8
 const rangeMelee = character.range * 0.5
 const rangeStalk = character.range
-const tickDelay = 250
+const tickDelay = 50
 
 setInterval(function tick() {
   if (autoRespawn && character.rip) respawn()
@@ -23,26 +23,27 @@ setInterval(function tick() {
   const mob = getTargetMob()
   if (!mob) return
 
-  if (
+  const doAttack =
     !is_on_cooldown('attack') &&
     ((autoDefend && iAmTargetOf(mob)) ||
       (autoAttack && isSafeTarget(mob) && distance(character, mob) > rangeMelee))
-  )
-    attack(mob)
+  if (doAttack) attack(mob)
+
+  const inCombat = iAmTargetOf(mob) || doAttack
 
   if (autoStalk) {
     if (!is_moving(character) && !is_in_range(mob, 'attack')) moveToward(mob)
     if (is_moving(character) && distance(character, mob) < rangeStalk) stop()
   }
 
-  if (autoKite && distance(character, mob) < rangeKite) moveUntoward(mob)
+  if (autoKite && inCombat && distance(character, mob) < rangeKite) moveUntoward(mob)
 }, tickDelay)
 
 function getTargetMob() {
   const aggroMob = get_nearest_monster({ target: character })
   if (aggroMob) return aggroMob
 
-  const mob = get_nearest_monster({ min_xp: 1, max_att: mobAtkMax })
+  const mob = get_nearest_monster({ min_xp: 1, max_att: Infinity })
   if (isSafeTarget(mob)) {
     change_target(mob)
     return mob
