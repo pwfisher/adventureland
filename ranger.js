@@ -4,6 +4,7 @@
 const autoAttack = true
 const autoApproach = false
 const autoRespawn = false
+const myName = 'Longer'
 
 const loopTime = 250
 const maxMobAtk = 50
@@ -26,13 +27,12 @@ setInterval(function () {
 }, loopTime)
 
 function getTarget() {
-  let target = get_targeted_monster()
-  if (!target) {
-    target = get_nearest_monster({ min_xp: 1, max_att: maxMobAtk })
-    if (target) change_target(target)
-    else set_message('No Monsters')
-  }
-  return target
+  const current = get_targeted_monster()
+  if (current?.target === myName) return current
+
+  const nearbyMob = get_nearest_monster({ min_xp: 1, max_att: maxMobAtk })
+  if (nearbyMob) change_target(nearbyMob)
+  return nearbyMob
 }
 
 function isSafeTarget(target) {
