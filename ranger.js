@@ -8,11 +8,12 @@ const autoRespawn = true
 const autoSquish = true
 const autoStalk = true
 const preyAtkMax = 50
-const preyXpMin = 101
+const preyXpMin = 500
 const rangeKite = character.range * 0.8
 const rangeMelee = character.range * 0.5
 const rangeStalk = character.range * 0.9
 const tickDelay = 250
+const pathChunk = character.range * 0.4
 
 let kitingMob = null
 
@@ -30,8 +31,8 @@ function tick() {
   // RADAR
   //
   const thisMob = get_targeted_monster()
-  const aggroMob = get_nearest_monster({ target: character })
-  const preyMob = get_nearest_monster({ min_xp: preyXpMin, max_att: preyAtkMax })
+  const aggroMob = getNearestMonster({ target: character })
+  const preyMob = getNearestMonster({ min_xp: preyXpMin, max_att: preyAtkMax, path_check: true })
   const squishMob = getNearestMonster({ max_hp: character.attack * 0.9 })
 
   //
@@ -42,14 +43,23 @@ function tick() {
     iAmTargetOf(thisMob) &&
     (autoAttack || autoDefend) &&
     (autoStalk || is_in_range(thisMob, 'attack'))
-  )
+  ) {
+    set_message('this')
     mobToAttack = thisMob
-  else if (aggroMob && autoDefend) mobToAttack = aggroMob
-  else if (preyMob && autoAttack && character.hp === character.max_hp) mobToAttack = preyMob
-  else if (squishMob && autoSquish && is_in_range(squishMob, 'attack')) mobToAttack = squishMob
+  } else if (aggroMob && autoDefend) {
+    set_message('aggro')
+    mobToAttack = aggroMob
+  } else if (preyMob && autoAttack && character.hp === character.max_hp) {
+    set_message('prey')
+    mobToAttack = preyMob
+  } else if (squishMob && autoSquish && is_in_range(squishMob, 'attack')) {
+    set_message('squish')
+    mobToAttack = squishMob
+  }
   if (
-    !is_on_cooldown('attack') &&
+    mobToAttack &&
     is_in_range(mobToAttack) &&
+    !is_on_cooldown('attack') &&
     (distance(character, mobToAttack) > rangeMelee ||
       mobToAttack === squishMob ||
       mobToAttack === aggroMob)
@@ -66,15 +76,13 @@ function tick() {
   if (autoKite && aggroMob) {
     if (distance(character, aggroMob) < rangeKite) {
       kitingMob = aggroMob
-      moveUntoward(aggroMob)
+      moveToward(aggroMob, pathChunk)
     }
   } else if (autoStalk && mobToAttack) {
     if (!is_moving(character)) {
-      if (!is_in_range(mobToAttack, 'attack')) moveToward(mobToAttack)
-      else if (distance(character, mobToAttack) < rangeMelee) moveUntoward(mobToAttack)
-    }
-    if (
-      is_moving(character) &&
+      if (!is_in_range(mobToAttack, 'attack')) moveToward(mobToAttack, pathChunk)
+      else if (distance(character, mobToAttack) < rangeMelee) moveToward(mobToAttack, -pathChunk)
+    } else if (
       distance(character, mobToAttack) > rangeKite &&
       distance(character, mobToAttack) < rangeStalk
     )
@@ -101,10 +109,14 @@ const getNearestMonster = (args = {}) => {
   }
   return result
 }
+
 const iAmTargetOf = x => x?.target === character.id
 // const isPrey = x => x?.attack < preyAtkMax
 const isSquishy = x => x?.hp < character.attack * 0.9
-const moveToward = p =>
-  move(character.x + (p.x - character.x) / 2, character.y + (p.y - character.y) / 2)
-const moveUntoward = p =>
-  move(character.x - (p.x - character.x) / 2, character.y - (p.y - character.y) / 2)
+
+const moveToward = (point, distance) => {
+  const dx = point.x - character.x
+  const dy = point.y - character.y
+  const magnitude = Math.sqrt(dx * dx + dy * dy)
+  move(character.x + (dx / magnitude) * distance, character.y + (dy / magnitude) * distance)
+}
