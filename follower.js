@@ -8,16 +8,17 @@ const meleeChar = ['warrior', 'rogue'].includes(character.ctype)
 //
 const autoAttack = true
 const autoDefend = true
+const autoFollow = true
 const autoKite = !meleeChar
 const autoRespawn = true
 const autoSquish = true
 const autoStalk = true
 const characterNames = ['Binger', 'Finger', 'Zinger']
-const preyAtkMax = character.attack * 0.5
-const preyXpMin = 1
-const rangeChunk = 50
+const nameLeader = 'Finger'
+const rangeChunk = character.speed * 1.0
+const rangeFollow = 10
 const rangeKite = character.range * 0.7
-const rangeRadar = character.range * 20
+const rangeRadar = character.speed * 10
 const rangeStalk = character.range * 0.9
 const squishyHp = character.attack * 0.95 // "squishy" = one-shot kill
 const tickDelay = 250
@@ -25,6 +26,7 @@ const tickDelay = 250
 //
 // STATE
 //
+let isFollowing = false
 let kitingMob = null
 let moveDirection = 'stop' // 'stop' | 'in' | 'out'
 let whichMob = 'none'
@@ -45,8 +47,9 @@ function tick() {
   //
   const lockMob = get_targeted_monster()
   const aggroMob = getNearestMonster({ target: character })
-  const preyMob = getNearestMonster({ min_xp: preyXpMin, max_att: preyAtkMax, path_check: true })
+  const partyMob = getNearestMonster({ target: nameLeader })
   const squishyMob = getNearestMonster({ max_hp: squishyHp })
+  const leadPlayer = get_player(nameLeader)
 
   //
   // ATTACK
@@ -63,14 +66,12 @@ function tick() {
     whichMob = 'aggro'
     mobToAttack = aggroMob
   } else if (
-    preyMob &&
+    partyMob &&
     autoAttack &&
-    character.hp > character.max_hp * 0.9 &&
-    !preyMob.dreturn && // damage return (porcupine)
-    preyMob.speed < character.speed
+    !partyMob.dreturn // damage return (porcupine)
   ) {
-    whichMob = 'prey'
-    mobToAttack = preyMob
+    whichMob = 'party'
+    mobToAttack = partyMob
   } else if (squishyMob && autoSquish && is_in_range(squishyMob, 'attack')) {
     whichMob = 'squishy'
     mobToAttack = squishyMob
@@ -78,23 +79,22 @@ function tick() {
     whichMob = 'none'
   }
 
-  if (
-    can_attack(mobToAttack) &&
-    // ranged chars don’t draw prey aggro in enemy range
-    (meleeChar || whichMob !== 'prey' || distance(character, mobToAttack) > mobToAttack.range * 1.4)
-  ) {
-    attack(mobToAttack)
-  }
+  if (can_attack(mobToAttack)) attack(mobToAttack)
 
   //
   // MOVEMENT
   //
-  if (kitingMob && !aggroMob) stopKiting()
+  if (distance(character, leadPlayer) < rangeChunk * 2) isFollowing = true
+  if (distance(character, leadPlayer) > rangeChunk * 6) isFollowing = false
+
+  if (isFollowing && !is_moving(character) && distance(character, leadPlayer) > rangeFollow)
+    move(leadPlayer.x, leadPlayer.y)
+  else if (kitingMob && !aggroMob) stopKiting()
   else if (autoKite && aggroMob && distance(character, aggroMob) <= rangeKite) kite(aggroMob)
   else if (autoStalk && mobToAttack) {
     if (!is_moving(character)) {
       if (!is_in_range(mobToAttack, 'attack')) moveToward(mobToAttack, rangeChunk)
-      else if (distance(character, mobToAttack) <= mobToAttack.range * 1.4 && !meleeChar)
+      else if (distance(character, mobToAttack) <= character.range * 0.5 && !meleeChar)
         moveToward(mobToAttack, -rangeChunk)
     } else if (
       distance(character, mobToAttack) > mobToAttack.range * 1.4 &&
@@ -108,7 +108,7 @@ function tick() {
   //
   // UPDATE UI
   //
-  set_message(`${whichMob} · ${moveDirection}`)
+  set_message(`${whichMob} · ${isFollowing ? 'lock' : 'lost'}`)
 }
 
 //
@@ -147,8 +147,6 @@ const getNearestMonster = (args = {}) => {
 }
 
 const iAmTargetOf = x => x?.target === character.id
-
-const isPrey = x => x?.attack <= preyAtkMax
 
 const isSquishy = x => x?.hp <= squishyHp
 
