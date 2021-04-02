@@ -1,7 +1,11 @@
 /*
- * Docs: https://github.com/kaansoral/adventureland
+ * Leader
+ *
+ * @author Patrick Fisher <patrick@pwfisher.com>
+ * @see https://github.com/kaansoral/adventureland
  */
 const meleeChar = ['warrior', 'rogue'].includes(character.ctype)
+const uiBlank = '--'
 
 //
 // CONFIG
@@ -9,15 +13,17 @@ const meleeChar = ['warrior', 'rogue'].includes(character.ctype)
 const autoAttack = true
 const autoDefend = true
 const autoKite = !meleeChar
+const autoParty = false
 const autoRespawn = true
 const autoSquish = true
 const autoStalk = true
 const characterNames = ['Binger', 'Finger', 'Zinger']
-const preyAtkMax = character.attack * 0.5
+const preyAtkMax = 50
 const preyXpMin = 1
-const rangeChunk = 50
+const rangeChunk = character.speed
+const rangeClose = min(50, character.range * 0.9)
 const rangeKite = character.range * 0.7
-const rangeRadar = character.range * 20
+const rangeRadar = 2000
 const rangeStalk = character.range * 0.9
 const squishyHp = character.attack * 0.95 // "squishy" = one-shot kill
 const tickDelay = 250
@@ -26,15 +32,16 @@ const tickDelay = 250
 // STATE
 //
 let kitingMob = null
-let moveDirection = 'stop' // 'stop' | 'in' | 'out'
-let whichMob = 'none'
+let moveDirection = null // null | 'in' | 'out' | 'kite'
+let whichMob = null
+let mobToAttack = null
 
 //
 // TICK
 //
 setInterval(tick, tickDelay)
 function tick() {
-  partyUp()
+  if (autoParty) partyUp()
   if (autoRespawn && character.rip) respawn()
   if (character.rip) return
   use_hp_or_mp()
@@ -51,7 +58,6 @@ function tick() {
   //
   // ATTACK
   //
-  let mobToAttack = null
   if (
     iAmTargetOf(lockMob) &&
     (autoAttack || autoDefend) &&
@@ -74,14 +80,15 @@ function tick() {
   } else if (squishyMob && autoSquish && is_in_range(squishyMob, 'attack')) {
     whichMob = 'squishy'
     mobToAttack = squishyMob
-  } else {
-    whichMob = 'none'
+  } else if (mobToAttack && mobToAttack.dead) {
+    whichMob = null
+    mobToAttack = null
   }
 
   if (
     can_attack(mobToAttack) &&
-    // ranged chars don’t draw prey aggro in enemy range
-    (meleeChar || whichMob !== 'prey' || distance(character, mobToAttack) > mobToAttack.range * 1.4)
+    // ranged chars, don’t draw prey aggro in enemy range
+    (meleeChar || whichMob !== 'prey' || distance(character, mobToAttack) > rangeClose)
   ) {
     attack(mobToAttack)
   }
@@ -89,26 +96,32 @@ function tick() {
   //
   // MOVEMENT
   //
+  const rangeMobToAttack = mobToAttack && distance(character, mobToAttack)
+
   if (kitingMob && !aggroMob) stopKiting()
+
+  if (kitingMob && aggroMob) {}
   else if (autoKite && aggroMob && distance(character, aggroMob) <= rangeKite) kite(aggroMob)
   else if (autoStalk && mobToAttack) {
-    if (!is_moving(character)) {
-      if (!is_in_range(mobToAttack, 'attack')) moveToward(mobToAttack, rangeChunk)
-      else if (distance(character, mobToAttack) <= mobToAttack.range * 1.4 && !meleeChar)
-        moveToward(mobToAttack, -rangeChunk)
-    } else if (
-      distance(character, mobToAttack) > mobToAttack.range * 1.4 &&
-      distance(character, mobToAttack) <= rangeStalk
-    ) {
-      stop() // in goldilocks zone
-      moveDirection = 'stop'
+    if (is_moving(character)) {
+      if (
+        (moveDirection === 'in' && rangeMobToAttack <= rangeStalk) ||
+        (moveDirection === 'out' && rangeMobToAttack >= rangeKite)
+      ) {
+        stop() // in goldilocks zone
+        moveDirection = null
+      }
+    } else { // not moving
+      if (rangeMobToAttack > character.range) moveToward(mobToAttack, rangeChunk)
+      else if (rangeMobToAttack < rangeClose && !meleeChar) moveToward(mobToAttack, -rangeChunk)
+      else moveDirection = null
     }
   }
 
   //
   // UPDATE UI
   //
-  set_message(`${whichMob} · ${moveDirection}`)
+  set_message(`${whichMob ?? uiBlank} · ${moveDirection ?? uiBlank}`)
 }
 
 //
@@ -118,12 +131,13 @@ function tick() {
 const kite = mob => {
   kitingMob = mob
   moveToward(mob, -rangeChunk)
+  moveDirection = 'kite'
 }
 
 const stopKiting = () => {
   stop()
   kitingMob = null
-  moveDirection = 'stop'
+  moveDirection = null
 }
 
 const getNearestMonster = (args = {}) => {

@@ -1,7 +1,11 @@
 /*
- * Docs: https://github.com/kaansoral/adventureland
+ * Follower
+ *
+ * @author Patrick Fisher <patrick@pwfisher.com>
+ * @see https://github.com/kaansoral/adventureland
  */
 const meleeChar = ['warrior', 'rogue'].includes(character.ctype)
+const uiBlank = '--'
 
 //
 // CONFIG
@@ -10,15 +14,19 @@ const autoAttack = true
 const autoDefend = true
 const autoFollow = true
 const autoKite = !meleeChar
+const autoParty = false
 const autoRespawn = true
 const autoSquish = true
 const autoStalk = true
 const characterNames = ['Binger', 'Finger', 'Zinger']
 const nameLeader = 'Finger'
 const rangeChunk = character.speed * 1.0
+const rangeClose = min(50, character.range * 0.9)
 const rangeFollow = 10
+const rangeFollowOn = Infinity
+const rangeFollowOff = Infinity
 const rangeKite = character.range * 0.7
-const rangeRadar = character.speed * 10
+const rangeRadar = 2000
 const rangeStalk = character.range * 0.9
 const squishyHp = character.attack * 0.95 // "squishy" = one-shot kill
 const tickDelay = 250
@@ -36,7 +44,7 @@ let whichMob = 'none'
 //
 setInterval(tick, tickDelay)
 function tick() {
-  partyUp()
+  if (autoParty) partyUp()
   if (autoRespawn && character.rip) respawn()
   if (character.rip) return
   use_hp_or_mp()
@@ -84,31 +92,38 @@ function tick() {
   //
   // MOVEMENT
   //
-  if (distance(character, leadPlayer) < rangeChunk * 2) isFollowing = true
-  if (distance(character, leadPlayer) > rangeChunk * 6) isFollowing = false
+  const rangeMobToAttack = mobToAttack && distance(character, mobToAttack)
+  const rangeLeadPlayer = leadPlayer && distance(character, leadPlayer)
 
-  if (isFollowing && !is_moving(character) && distance(character, leadPlayer) > rangeFollow)
-    move(leadPlayer.x, leadPlayer.y)
-  else if (kitingMob && !aggroMob) stopKiting()
+  if (rangeLeadPlayer < rangeFollowOn) isFollowing = true
+  if (rangeLeadPlayer > rangeFollowOff) isFollowing = false
+
+  if (kitingMob && !aggroMob) stopKiting()
+
+  if (kitingMob && aggroMob) {}
   else if (autoKite && aggroMob && distance(character, aggroMob) <= rangeKite) kite(aggroMob)
-  else if (autoStalk && mobToAttack) {
-    if (!is_moving(character)) {
-      if (!is_in_range(mobToAttack, 'attack')) moveToward(mobToAttack, rangeChunk)
-      else if (distance(character, mobToAttack) <= character.range * 0.5 && !meleeChar)
-        moveToward(mobToAttack, -rangeChunk)
-    } else if (
-      distance(character, mobToAttack) > mobToAttack.range * 1.4 &&
-      distance(character, mobToAttack) <= rangeStalk
-    ) {
-      stop() // in goldilocks zone
-      moveDirection = 'stop'
+  else if (autoStalk && mobToAttack && whichMob !== 'squishy') {
+    if (is_moving(character)) {
+      if (
+        (moveDirection === 'in' && rangeMobToAttack <= rangeStalk) ||
+        (moveDirection === 'out' && rangeMobToAttack >= rangeKite)
+      ) {
+        stop() // in goldilocks zone
+        moveDirection = null
+      }
+    } else { // not moving
+      if (rangeMobToAttack > character.range) moveToward(mobToAttack, rangeChunk)
+      else if (rangeMobToAttack < rangeClose && !meleeChar) moveToward(mobToAttack, -rangeChunk)
+      else moveDirection = null
     }
   }
+  else if (isFollowing && !is_moving(character) && rangeLeadPlayer > rangeFollow)
+    xmove(leadPlayer.going_x ?? leadPlayer.x, leadPlayer.going_y ?? leadPlayer.y)
 
   //
   // UPDATE UI
   //
-  set_message(`${whichMob} · ${isFollowing ? 'lock' : 'lost'}`)
+  set_message(`${whichMob ?? uiBlank} · ${rangeLeadPlayer ?? uiBlank}`)
 }
 
 //
