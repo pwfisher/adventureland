@@ -14,20 +14,18 @@ const autoAttack = true
 const autoDefend = true
 const autoFollow = true
 const autoKite = !meleeChar
-const autoParty = false
 const autoRespawn = true
 const autoSquish = true
 const autoStalk = true
 const characterNames = ['Binger', 'Finger', 'Zinger']
-const nameLeader = 'Finger'
-const rangeChunk = character.speed * 1.0
-const rangeClose = min(50, character.range * 0.9)
+const leaderName = 'Finger'
+const rangeChunk = character.speed
+const rangeClose = Math.min(50, character.range * 0.9)
 const rangeFollow = 10
 const rangeFollowOn = Infinity
 const rangeFollowOff = Infinity
-const rangeKite = character.range * 0.7
 const rangeRadar = 2000
-const rangeStalk = character.range * 0.9
+const rangeStalk = [character.range * 0.7, character.range * 0.9]
 const squishyHp = character.attack * 0.95 // "squishy" = one-shot kill
 const tickDelay = 250
 
@@ -44,20 +42,20 @@ let whichMob = 'none'
 //
 setInterval(tick, tickDelay)
 function tick() {
-  if (autoParty) partyUp()
   if (autoRespawn && character.rip) respawn()
   if (character.rip) return
   use_hp_or_mp()
   loot()
+  accept_magiport(leaderName)
 
   //
   // RADAR
   //
   const lockMob = get_targeted_monster()
-  const aggroMob = getNearestMonster({ target: character })
-  const partyMob = getNearestMonster({ target: nameLeader })
-  const squishyMob = getNearestMonster({ max_hp: squishyHp })
-  const leadPlayer = get_player(nameLeader)
+  const aggroMob = getNearestMonster({ target: character.name })
+  const partyMob = getNearestMonster({ target: leaderName })
+  const squishyMob = getNearestMonster({ min_xp: 1, max_hp: squishyHp }) // exclude negative xp (puppies)
+  const leadPlayer = get_player(leaderName)
 
   //
   // ATTACK
@@ -93,37 +91,43 @@ function tick() {
   // MOVEMENT
   //
   const rangeMobToAttack = mobToAttack && distance(character, mobToAttack)
-  const rangeLeadPlayer = leadPlayer && distance(character, leadPlayer)
+  const rangeAggroMob = aggroMob ? distance(character, aggroMob) : null
+  const leadGoingTo = { x: leadPlayer?.going_x, y: leadPlayer?.going_y }
+  const rangeLeadPlayer = leadPlayer && distance(character, leadGoingTo)
 
   if (rangeLeadPlayer < rangeFollowOn) isFollowing = true
   if (rangeLeadPlayer > rangeFollowOff) isFollowing = false
 
   if (kitingMob && !aggroMob) stopKiting()
 
-  if (kitingMob && aggroMob) {}
-  else if (autoKite && aggroMob && distance(character, aggroMob) <= rangeKite) kite(aggroMob)
+  if ((kitingMob || (autoKite && aggroMob)) && rangeAggroMob <= safeRangeFor(aggroMob)) kite(aggroMob)
   else if (autoStalk && mobToAttack && whichMob !== 'squishy') {
     if (is_moving(character)) {
       if (
-        (moveDirection === 'in' && rangeMobToAttack <= rangeStalk) ||
-        (moveDirection === 'out' && rangeMobToAttack >= rangeKite)
+        (moveDirection === 'in' && rangeMobToAttack <= rangeStalk[1]) ||
+        (moveDirection === 'out' && rangeMobToAttack >= rangeStalk[0])
       ) {
         stop() // in goldilocks zone
         moveDirection = null
       }
     } else { // not moving
       if (rangeMobToAttack > character.range) moveToward(mobToAttack, rangeChunk)
-      else if (rangeMobToAttack < rangeClose && !meleeChar) moveToward(mobToAttack, -rangeChunk)
+      else if (!meleeChar && rangeMobToAttack <= safeRangeFor(mobToAttack)) moveToward(mobToAttack, -rangeChunk)
       else moveDirection = null
     }
   }
-  else if (isFollowing && !is_moving(character) && rangeLeadPlayer > rangeFollow)
-    xmove(leadPlayer.going_x ?? leadPlayer.x, leadPlayer.going_y ?? leadPlayer.y)
+  else if (isFollowing && !is_moving(character) && rangeLeadPlayer > rangeFollow) {
+    moveToward(leadGoingTo, Math.min(rangeChunk, rangeLeadPlayer))
+    moveDirection = 'follow'
+  }
 
   //
   // UPDATE UI
   //
-  set_message(`${whichMob ?? uiBlank} · ${rangeLeadPlayer ?? uiBlank}`)
+  const uiRange = rangeAggroMob ? Math.round(rangeAggroMob) : uiBlank
+  const uiWhich = whichMob || uiBlank
+  const uiDir = kitingMob ? 'kite' : moveDirection || uiBlank
+  set_message(`${uiRange} · ${uiWhich} · ${uiDir}`)
 }
 
 //
@@ -166,6 +170,7 @@ const iAmTargetOf = x => x?.target === character.id
 const isSquishy = x => x?.hp <= squishyHp
 
 const moveToward = (point, distance) => {
+  if (!can_move_to(point.x, point.y)) return smart_move(point)
   const dx = point.x - character.x
   const dy = point.y - character.y
   const magnitude = Math.sqrt(dx * dx + dy * dy)
@@ -173,12 +178,7 @@ const moveToward = (point, distance) => {
   moveDirection = distance > 0 ? 'in' : 'out'
 }
 
-const partyUp = () => {
-  const partyNames = Object.keys(get_party())
-  for (const name of characterNames) {
-    if (!partyNames.includes(name)) send_party_invite(name)
-  }
-}
+const safeRangeFor = mob => mob.range * 1.2 + 0.5 * mob.speed
 
 //
 // Hooks

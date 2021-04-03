@@ -13,18 +13,17 @@ const uiBlank = '--'
 const autoAttack = true
 const autoDefend = true
 const autoKite = !meleeChar
-const autoParty = false
+const autoParty = true
 const autoRespawn = true
 const autoSquish = true
 const autoStalk = true
 const characterNames = ['Binger', 'Finger', 'Zinger']
-const preyAtkMax = 50
+const preyAtkMax = 1000
 const preyXpMin = 1
 const rangeChunk = character.speed
-const rangeClose = min(50, character.range * 0.9)
-const rangeKite = character.range * 0.7
+const rangeClose = Math.min(50, character.range * 0.9)
 const rangeRadar = 2000
-const rangeStalk = character.range * 0.9
+const rangeStalk = [character.range * 0.7, character.range * 0.9]
 const squishyHp = character.attack * 0.95 // "squishy" = one-shot kill
 const tickDelay = 250
 
@@ -51,9 +50,10 @@ function tick() {
   // RADAR
   //
   const lockMob = get_targeted_monster()
-  const aggroMob = getNearestMonster({ target: character })
+  const aggroMob = getNearestMonster({ target: character.name })
   const preyMob = getNearestMonster({ min_xp: preyXpMin, max_att: preyAtkMax, path_check: true })
-  const squishyMob = getNearestMonster({ max_hp: squishyHp })
+  const squishyMob = getNearestMonster({ min_xp: 1, max_hp: squishyHp }) // exclude negative xp (puppies)
+  // const xpMob = getXpestMonster() // TODO? factor in xp (e.g. prefer froggy over tortoise)
 
   //
   // ATTACK
@@ -97,23 +97,23 @@ function tick() {
   // MOVEMENT
   //
   const rangeMobToAttack = mobToAttack && distance(character, mobToAttack)
+  const rangeAggroMob = aggroMob ? distance(character, aggroMob) : null
 
   if (kitingMob && !aggroMob) stopKiting()
 
-  if (kitingMob && aggroMob) {}
-  else if (autoKite && aggroMob && distance(character, aggroMob) <= rangeKite) kite(aggroMob)
+  if ((kitingMob || (autoKite && aggroMob)) && rangeAggroMob <= safeRangeFor(aggroMob)) kite(aggroMob)
   else if (autoStalk && mobToAttack) {
     if (is_moving(character)) {
       if (
-        (moveDirection === 'in' && rangeMobToAttack <= rangeStalk) ||
-        (moveDirection === 'out' && rangeMobToAttack >= rangeKite)
+        (moveDirection === 'in' && rangeMobToAttack <= rangeStalk[1]) ||
+        (moveDirection === 'out' && rangeMobToAttack >= rangeStalk[0])
       ) {
         stop() // in goldilocks zone
         moveDirection = null
       }
     } else { // not moving
       if (rangeMobToAttack > character.range) moveToward(mobToAttack, rangeChunk)
-      else if (rangeMobToAttack < rangeClose && !meleeChar) moveToward(mobToAttack, -rangeChunk)
+      else if (!meleeChar && rangeMobToAttack <= safeRangeFor(mobToAttack)) moveToward(mobToAttack, -rangeChunk)
       else moveDirection = null
     }
   }
@@ -121,7 +121,10 @@ function tick() {
   //
   // UPDATE UI
   //
-  set_message(`${whichMob ?? uiBlank} · ${moveDirection ?? uiBlank}`)
+  const uiRange = rangeAggroMob ? Math.round(rangeAggroMob) : uiBlank
+  const uiWhich = whichMob || uiBlank
+  const uiDir = kitingMob ? 'kite' : moveDirection || uiBlank
+  set_message(`${uiRange} · ${uiWhich} · ${uiDir}`)
 }
 
 //
@@ -131,7 +134,6 @@ function tick() {
 const kite = mob => {
   kitingMob = mob
   moveToward(mob, -rangeChunk)
-  moveDirection = 'kite'
 }
 
 const stopKiting = () => {
@@ -174,12 +176,14 @@ const moveToward = (point, distance) => {
   moveDirection = distance > 0 ? 'in' : 'out'
 }
 
-const partyUp = () => {
+function partyUp() {
   const partyNames = Object.keys(get_party())
   for (const name of characterNames) {
     if (!partyNames.includes(name)) send_party_invite(name)
   }
 }
+
+const safeRangeFor = mob => mob.range * 1. + 0.5 * mob.speed
 
 //
 // Hooks
