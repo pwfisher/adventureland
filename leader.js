@@ -5,7 +5,6 @@
  * @see https://github.com/kaansoral/adventureland
  */
 const meleeChar = ['warrior', 'rogue'].includes(character.ctype)
-const uiBlank = '--'
 
 //
 // CONFIG
@@ -26,6 +25,10 @@ const rangeRadar = 2000
 const rangeStalk = [character.range * 0.7, character.range * 0.9]
 const squishyHp = character.attack * 0.95 // "squishy" = one-shot kill
 const tickDelay = 250
+const uiBlank = '--'
+
+// computed config
+const followerNames = characterNames.filter(x => x !== character.name)
 
 //
 // STATE
@@ -49,6 +52,7 @@ function tick() {
   //
   // RADAR
   //
+  updateRadar()
   const lockMob = get_targeted_monster()
   const aggroMob = getNearestMonster({ target: character.name })
   const preyMob = getNearestMonster({ min_xp: preyXpMin, max_att: preyAtkMax, path_check: true })
@@ -142,23 +146,32 @@ const stopKiting = () => {
   moveDirection = null
 }
 
-const getNearestMonster = (args = {}) => {
-  let min_d = rangeRadar,
-    result = null
+// "radar" caches distances for performance
+let radar = []
+const updateRadar = () => {
+  radar = []
   for (id in parent.entities) {
     const mob = parent.entities[id]
     if (mob.type !== 'monster' || !mob.visible || mob.dead) continue
-    if (args.mtype && mob.mtype !== args.mtype) continue
-    if (args.min_xp && mob.xp < args.min_xp) continue
-    if (args.max_att && mob.attack > args.max_att) continue
-    if (args.max_hp && mob.hp > args.max_hp) continue
-    if (args.target && mob.target !== args.target) continue
-    if (args.no_target && mob.target && mob.target !== character.name) continue
-    if (args.path_check && !can_move_to(mob)) continue
-    const distance = parent.distance(character, mob)
-    if (args.no_melee && distance < character.range * 0.5) continue
-    if (distance < min_d) (min_d = distance), (result = mob)
+    const range = distance(character, mob)
+    if (range > rangeRadar) continue
+    radar.push({ mob, range })
   }
+}
+
+const getNearestMonster = (args = {}) => {
+  let min_d = rangeRadar,
+    result = null
+  radar.forEach(({ mob, range }) => {
+    if (args.mtype && mob.mtype !== args.mtype) return
+    if (args.min_xp && mob.xp < args.min_xp) return
+    if (args.max_att && mob.attack > args.max_att) return
+    if (args.max_hp && mob.hp > args.max_hp) return
+    if (args.target && mob.target !== args.target) return
+    if (args.no_target && mob.target && mob.target !== character.name) return
+    if (args.path_check && !can_move_to(mob)) return
+    if (range < min_d) (min_d = range), (result = mob)
+  })
   return result
 }
 
@@ -178,16 +191,21 @@ const moveToward = (point, distance) => {
 
 function partyUp() {
   const partyNames = Object.keys(get_party())
-  for (const name of characterNames) {
+  for (const name of followerNames) {
     if (!partyNames.includes(name)) send_party_invite(name)
   }
 }
 
-const safeRangeFor = mob => mob.range * 1. + 0.5 * mob.speed
+const safeRangeFor = mob => mob.range * 1.2 + 0.5 * mob.speed
 
 //
 // Hooks
 //
+
+// handle_command = (command, _arg) => {
+//   const { map, x, y } = character
+//   if (command === 'smart_follow') send_cm(followerNames, { 'task': 'move', map, x, y })
+// }
 
 on_party_invite = name => {
   if (characterNames.includes(name)) accept_party_invite(name)

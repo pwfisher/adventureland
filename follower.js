@@ -17,7 +17,6 @@ const autoKite = !meleeChar
 const autoRespawn = true
 const autoSquish = true
 const autoStalk = true
-const characterNames = ['Binger', 'Finger', 'Zinger']
 const leaderName = 'Finger'
 const rangeChunk = character.speed
 const rangeClose = Math.min(50, character.range * 0.9)
@@ -32,7 +31,6 @@ const tickDelay = 250
 //
 // STATE
 //
-let isFollowing = false
 let kitingMob = null
 let moveDirection = 'stop' // 'stop' | 'in' | 'out'
 let whichMob = 'none'
@@ -51,11 +49,14 @@ function tick() {
   //
   // RADAR
   //
+  updateRadar()
   const lockMob = get_targeted_monster()
   const aggroMob = getNearestMonster({ target: character.name })
   const partyMob = getNearestMonster({ target: leaderName })
   const squishyMob = getNearestMonster({ min_xp: 1, max_hp: squishyHp }) // exclude negative xp (puppies)
   const leadPlayer = get_player(leaderName)
+  const party = get_party() || {}
+  const leaderMap = party[leaderName]?.map
 
   //
   // ATTACK
@@ -71,11 +72,7 @@ function tick() {
   } else if (aggroMob && autoDefend) {
     whichMob = 'aggro'
     mobToAttack = aggroMob
-  } else if (
-    partyMob &&
-    autoAttack &&
-    !partyMob.dreturn // damage return (porcupine)
-  ) {
+  } else if (partyMob && autoAttack) {
     whichMob = 'party'
     mobToAttack = partyMob
   } else if (squishyMob && autoSquish && is_in_range(squishyMob, 'attack')) {
@@ -93,10 +90,7 @@ function tick() {
   const rangeMobToAttack = mobToAttack && distance(character, mobToAttack)
   const rangeAggroMob = aggroMob ? distance(character, aggroMob) : null
   const leadGoingTo = { x: leadPlayer?.going_x, y: leadPlayer?.going_y }
-  const rangeLeadPlayer = leadPlayer && distance(character, leadGoingTo)
-
-  if (rangeLeadPlayer < rangeFollowOn) isFollowing = true
-  if (rangeLeadPlayer > rangeFollowOff) isFollowing = false
+  const rangeLeader = leadPlayer && distance(character, leadGoingTo)
 
   if (kitingMob && !aggroMob) stopKiting()
 
@@ -116,9 +110,12 @@ function tick() {
       else moveDirection = null
     }
   }
-  else if (isFollowing && !is_moving(character) && rangeLeadPlayer > rangeFollow) {
-    moveToward(leadGoingTo, Math.min(rangeChunk, rangeLeadPlayer))
-    moveDirection = 'follow'
+  else if (autoFollow && !is_moving(character)) {
+    if (rangeLeader > rangeFollow) {
+      moveToward(leadGoingTo, Math.min(rangeChunk, rangeLeader))
+      moveDirection = 'follow'
+    }
+    else moveDirection = null
   }
 
   //
@@ -145,23 +142,32 @@ const stopKiting = () => {
   moveDirection = 'stop'
 }
 
-const getNearestMonster = (args = {}) => {
-  let min_d = rangeRadar,
-    result = null
+// "radar" caches distances for performance
+let radar = []
+const updateRadar = () => {
+  radar = []
   for (id in parent.entities) {
     const mob = parent.entities[id]
     if (mob.type !== 'monster' || !mob.visible || mob.dead) continue
-    if (args.mtype && mob.mtype !== args.mtype) continue
-    if (args.min_xp && mob.xp < args.min_xp) continue
-    if (args.max_att && mob.attack > args.max_att) continue
-    if (args.max_hp && mob.hp > args.max_hp) continue
-    if (args.target && mob.target !== args.target) continue
-    if (args.no_target && mob.target && mob.target !== character.name) continue
-    if (args.path_check && !can_move_to(mob)) continue
-    const distance = parent.distance(character, mob)
-    if (args.no_melee && distance < character.range * 0.5) continue
-    if (distance < min_d) (min_d = distance), (result = mob)
+    const range = distance(character, mob)
+    if (range > rangeRadar) continue
+    radar.push({ mob, range })
   }
+}
+
+const getNearestMonster = (args = {}) => {
+  let min_d = rangeRadar,
+    result = null
+  radar.forEach(({ mob, range }) => {
+    if (args.mtype && mob.mtype !== args.mtype) return
+    if (args.min_xp && mob.xp < args.min_xp) return
+    if (args.max_att && mob.attack > args.max_att) return
+    if (args.max_hp && mob.hp > args.max_hp) return
+    if (args.target && mob.target !== args.target) return
+    if (args.no_target && mob.target && mob.target !== character.name) return
+    if (args.path_check && !can_move_to(mob)) return
+    if (range < min_d) (min_d = range), (result = mob)
+  })
   return result
 }
 
@@ -185,5 +191,5 @@ const safeRangeFor = mob => mob.range * 1.2 + 0.5 * mob.speed
 //
 
 on_party_invite = name => {
-  if (characterNames.includes(name)) accept_party_invite(name)
+  if (name === leaderName) accept_party_invite(name)
 }
