@@ -11,13 +11,15 @@ const meleeChar = ['warrior', 'rogue'].includes(character.ctype)
 //
 const autoAttack = true
 const autoDefend = true
-const autoKite = !meleeChar && false
+const autoJuicy = true
+const autoKite = !meleeChar
 const autoParty = true
 const autoRespawn = true
 const autoSquish = true
 const autoStalk = true
 const characterNames = ['Binger', 'Finger', 'Zinger']
-const preyAtkMax = 500
+const preyAtkMax = 1000
+const preyJuicy = ['osnake', 'froggie']
 const preyXpMin = 1
 const rangeChunk = character.speed
 const rangeClose = Math.min(50, character.range * 0.9)
@@ -57,6 +59,7 @@ function tick() {
   const aggroMob = getNearestMonster({ target: character.name })
   const meanMob = getNearestMonster({ mean: true })
   const preyMob = getNearestMonster({ min_xp: preyXpMin, max_att: preyAtkMax })
+  // const preyMob = getPreyMob()
   const squishyMob = getNearestMonster({ min_xp: 1, max_hp: squishyHp }) // exclude negative xp (puppies)
 
   //
@@ -103,7 +106,7 @@ function tick() {
   if (kitingMob && !aggroMob) stopKiting()
 
   if ((kitingMob || (autoKite && aggroMob)) && radarRange(aggroMob) <= safeRangeFor(aggroMob)) kite(aggroMob)
-  else if (autoStalk && mobToAttack) {
+  else if (autoStalk && mobToAttack && whichMob !== 'squishy') {
     if (is_moving(character)) {
       if (
         (moveDirection === 'in' && radarRange(mobToAttack) <= rangeStalk[1]) ||
@@ -144,7 +147,7 @@ const stopKiting = () => {
   moveDirection = null
 }
 
-// "radar" caches distances for performance
+// "radar" caches "radar ping" (mob, distance) pairs for performance
 let radar = []
 const updateRadar = () => {
   radar = []
@@ -158,20 +161,34 @@ const updateRadar = () => {
 }
 const radarRange = mob => radar.find(o => o.mob === mob)?.range
 
-const getNearestMonster = (args = {}) => {
-  let min_d = rangeRadar,
-    result = null
-  radar.forEach(({ mob, range }) => {
-    if (args.mtype && mob.mtype !== args.mtype) return
-    if (args.min_xp && mob.xp < args.min_xp) return
-    if (args.max_att && mob.attack > args.max_att) return
-    if (args.max_hp && mob.hp > args.max_hp) return
-    if (args.target && mob.target !== args.target) return
-    if (args.no_target && mob.target && mob.target !== character.name) return
-    if (args.path_check && !can_move_to(mob)) return
-    if (range < min_d) (min_d = range), (result = mob)
-  })
-  return result
+const getNearestMonster = args => getClosestRadarPing(getRadarPings(args))
+
+const getClosestRadarPing = pings => pings.reduce(
+  (x, o) => o.range < x.range ? o : x,
+  { range: Infinity }
+)?.mob
+
+const getRadarPings = (args = {}) => radar.filter(({ mob }) => {
+  if (args.is_juicy && !preyJuicy.includes[mob.mtype]) return false
+  if (args.mtype && mob.mtype !== args.mtype) return false
+  if (args.min_xp && mob.xp < args.min_xp) return false
+  if (args.max_att && mob.attack > args.max_att) return false
+  if (args.max_hp && mob.hp > args.max_hp) return false
+  if (args.target && mob.target !== args.target) return false
+  if (args.no_target && mob.target && mob.target !== character.name) return false
+  if (args.path_check && !can_move_to(mob)) return false
+  return true
+})
+
+// const getPreyMob = () => getNearestMonster({ min_xp: preyXpMin, max_att: preyAtkMax })
+
+const getPreyMob = () => {
+  const preferredMobs = getRadarPings({ is_juicy: true })
+  if (autoJuicy && preferredMobs.length) {
+    console.log('found juicy target', getClosestRadarPing(preferredMobs))
+    return getClosestRadarPing(preferredMobs)
+  }
+  else return getNearestMonster({ min_xp: preyXpMin, max_att: preyAtkMax })
 }
 
 const iAmTargetOf = x => x?.target === character.id
@@ -181,7 +198,7 @@ const isPrey = x => x?.attack <= preyAtkMax
 const isSquishy = x => x?.hp <= squishyHp
 
 const moveToward = (point, distance) => {
-  if (!can_move_to(point.x, point.y)) smart_move(point)
+  if (!can_move_to(point.x, point.y)) smart_move({ x: point.x, y: point.y }) // don‘t want point.map
   const dx = point.x - character.x
   const dy = point.y - character.y
   const magnitude = Math.sqrt(dx * dx + dy * dy)

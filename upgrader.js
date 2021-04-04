@@ -1,17 +1,20 @@
 //
 // Upgrader
 //
-const autoItem = 'helmet'
-const autoParty = true
+const autoItem = 'pants'
+const autoParty = false
 const autoStand = true
+const autoUpgrade = true
 const characterNames = ['Binger', 'Finger', 'Zinger']
 
 //
 // Loop
 //
 setInterval(() => {
-  if (character.items[0]?.level < 7) upgrade(0, 1)
-  else if (!character.items[0]) buy(autoItem)
+  if (autoUpgrade) {
+    if (character.items[0]?.level < 7) upgrade(0, 1)
+    else if (!character.items[0]) buy(autoItem)
+  }
 }, 250)
 
 //
@@ -22,8 +25,8 @@ function openMerchantStand() { // h/t johnnyawesome
   close_stand()
 	smart_move({
 		map: 'main',
-		x: Math.round(Math.random() * 100) - 50,
-		y: Math.round(Math.random() * 100) - 50,
+		x: Math.round(Math.random() * 50) - 100,
+		y: Math.round(Math.random() * 50) - 100,
 	}, () => {
 		move(character.x, character.y + 1) // face front
 		open_stand()

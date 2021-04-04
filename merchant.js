@@ -2,7 +2,6 @@
 
 [37,38,39].forEach(x => bank_store(x))
 
-
 //
 // Rubies
 //
@@ -18,21 +17,11 @@ function rubyCleanup() {
 const rubySlot = 0
 //setInterval(() => exchange(rubySlot) && setTimeout(rubyCleanup, 1), 350)
 
-function openMerchantStand() { // by johnnyawesome
-	if (is_moving(character)) return
-	smart_move({
-		map: 'main',
-		x: -20 - Math.round(Math.random() * 180),
-		y: -70
-	}, () => {
-		move(character.x, character.y + 1) // face front
-		open_stand()
-	})
-}
-
 close_stand()
 
 // Bank inventory in packs "items0", "items1", etc. Wrapping some game functions for friendlier argument names.
 const bankAll = () => character.items.forEach((o, i) => { if (o) bank_store(i) })
+const bankDepositAll = () => bank_deposit(character.bank.gold)
 const bankRetrieve = (packId, packSlot, slot) => bank_retrieve(packId, packSlot, slot)
 const bankStore = (slot, packId, packSlot) = bank_store(slot, packId, packSlot)
+const bankWithdrawAll = () => bank_withdraw(character.bank.gold)

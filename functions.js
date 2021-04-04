@@ -11,30 +11,19 @@ const getEntityArray = () => Object.keys(parent.entities).map(k => parent.entiti
 const getPlayers = () => getEntityArray().filter(o => o.player)
 const getPlayerNames = () => getPlayers().map(o => o.name)
 
-//Upgrade Items
+const maxUpgradeLevel = 7
+const scrolls = ['scroll0', 'scroll1', 'scroll2']
 let itemsToUpgrade = ['shoes']
-// https://github.com/johnnyawesome/Adventure.Land/blob/master/SRC/merchantSkills.5.js
-function upgradeItems() {
-  if (merchantDebugMode) log('Upgrading Items', 'green');
-  const scrolls = ['scroll0', 'scroll1', 'scroll2'];
+function upgradeItems() { // h/t johnnyawesome
+  if (character.q.upgrade) return
   for (slot in character.items) {
-    if (!character.q.upgrade
-      && character.items[slot]?.name
-        && itemsToUpgrade.includes(character.items[slot].name)
-        && G.items[character.items[slot].name].upgrade)
-      && character.items[slot].level <= maxUpgradeLevel) {
-      //Use massproduction skill
-      // massProduction();
-      //Upgrade item
-      upgrade(slot, locate_item(scrolls[item_grade(character.items[slot])])).then(
-        (data) => {
-          game_log(`Upgraded ${character.items[slot].name}`);
-        },
-        (data) => {
-          game_log(`Upgrade failed: ${character.items[slot].name} : ${data.reason}`);
-        },
-      );
-      return;
+    const item = character.items[slot]
+    if (itemsToUpgrade.includes(item?.name) && G.items[item.name].upgrade && item.level <= maxUpgradeLevel) {
+      // TODO use mass production skill
+      upgrade(slot, locate_item(scrolls[item_grade(item)])).then(
+        (_data) => game_log(`Upgraded ${item.name}`),
+        (data) => game_log(`Upgrade failed: ${item.name} : ${data.reason}`),
+      )
     }
   }
 }
