@@ -11,13 +11,13 @@ const meleeChar = ['warrior', 'rogue'].includes(character.ctype)
 //
 const autoAttack = true
 const autoDefend = true
-const autoKite = !meleeChar
+const autoKite = !meleeChar && false
 const autoParty = true
 const autoRespawn = true
 const autoSquish = true
 const autoStalk = true
 const characterNames = ['Binger', 'Finger', 'Zinger']
-const preyAtkMax = 1000
+const preyAtkMax = 500
 const preyXpMin = 1
 const rangeChunk = character.speed
 const rangeClose = Math.min(50, character.range * 0.9)
@@ -55,9 +55,9 @@ function tick() {
   updateRadar()
   const lockMob = get_targeted_monster()
   const aggroMob = getNearestMonster({ target: character.name })
-  const preyMob = getNearestMonster({ min_xp: preyXpMin, max_att: preyAtkMax, path_check: true })
+  const meanMob = getNearestMonster({ mean: true })
+  const preyMob = getNearestMonster({ min_xp: preyXpMin, max_att: preyAtkMax })
   const squishyMob = getNearestMonster({ min_xp: 1, max_hp: squishyHp }) // exclude negative xp (puppies)
-  // const xpMob = getXpestMonster() // TODO? factor in xp (e.g. prefer froggy over tortoise)
 
   //
   // ATTACK
@@ -100,24 +100,22 @@ function tick() {
   //
   // MOVEMENT
   //
-  const rangeMobToAttack = mobToAttack && distance(character, mobToAttack)
-  const rangeAggroMob = aggroMob ? distance(character, aggroMob) : null
-
   if (kitingMob && !aggroMob) stopKiting()
 
-  if ((kitingMob || (autoKite && aggroMob)) && rangeAggroMob <= safeRangeFor(aggroMob)) kite(aggroMob)
+  if ((kitingMob || (autoKite && aggroMob)) && radarRange(aggroMob) <= safeRangeFor(aggroMob)) kite(aggroMob)
   else if (autoStalk && mobToAttack) {
     if (is_moving(character)) {
       if (
-        (moveDirection === 'in' && rangeMobToAttack <= rangeStalk[1]) ||
-        (moveDirection === 'out' && rangeMobToAttack >= rangeStalk[0])
+        (moveDirection === 'in' && radarRange(mobToAttack) <= rangeStalk[1]) ||
+        (moveDirection === 'out' && radarRange(mobToAttack) >= rangeStalk[0])
       ) {
         stop() // in goldilocks zone
         moveDirection = null
       }
     } else { // not moving
-      if (rangeMobToAttack > character.range) moveToward(mobToAttack, rangeChunk)
-      else if (!meleeChar && rangeMobToAttack <= safeRangeFor(mobToAttack)) moveToward(mobToAttack, -rangeChunk)
+      if (radarRange(mobToAttack) > character.range) moveToward(mobToAttack, rangeChunk)
+      else if (radarRange(meanMob) <= safeRangeFor(meanMob)) moveToward(meanMob, -rangeChunk)
+      else if (autoKite && radarRange(mobToAttack) <= safeRangeFor(mobToAttack)) moveToward(mobToAttack, -rangeChunk)
       else moveDirection = null
     }
   }
@@ -125,7 +123,7 @@ function tick() {
   //
   // UPDATE UI
   //
-  const uiRange = rangeAggroMob ? Math.round(rangeAggroMob) : uiBlank
+  const uiRange = radarRange(aggroMob) ? Math.round(radarRange(aggroMob)) : uiBlank
   const uiWhich = whichMob || uiBlank
   const uiDir = kitingMob ? 'kite' : moveDirection || uiBlank
   set_message(`${uiRange} · ${uiWhich} · ${uiDir}`)
@@ -158,6 +156,7 @@ const updateRadar = () => {
     radar.push({ mob, range })
   }
 }
+const radarRange = mob => radar.find(o => o.mob === mob)?.range
 
 const getNearestMonster = (args = {}) => {
   let min_d = rangeRadar,
@@ -182,6 +181,7 @@ const isPrey = x => x?.attack <= preyAtkMax
 const isSquishy = x => x?.hp <= squishyHp
 
 const moveToward = (point, distance) => {
+  if (!can_move_to(point.x, point.y)) smart_move(point)
   const dx = point.x - character.x
   const dy = point.y - character.y
   const magnitude = Math.sqrt(dx * dx + dy * dy)
@@ -196,7 +196,7 @@ function partyUp() {
   }
 }
 
-const safeRangeFor = mob => mob.range * 1.2 + 0.5 * mob.speed
+const safeRangeFor = mob => mob.range * 1.3 + 0.5 * mob.speed
 
 //
 // Hooks

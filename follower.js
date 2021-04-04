@@ -45,6 +45,7 @@ function tick() {
   use_hp_or_mp()
   loot()
   accept_magiport(leaderName)
+  if (character.bank) bank_deposit(character.bank.gold)
 
   //
   // RADAR
@@ -52,11 +53,10 @@ function tick() {
   updateRadar()
   const lockMob = get_targeted_monster()
   const aggroMob = getNearestMonster({ target: character.name })
+  const meanMob = getNearestMonster({ mean: true })
   const partyMob = getNearestMonster({ target: leaderName })
   const squishyMob = getNearestMonster({ min_xp: 1, max_hp: squishyHp }) // exclude negative xp (puppies)
   const leadPlayer = get_player(leaderName)
-  const party = get_party() || {}
-  const leaderMap = party[leaderName]?.map
 
   //
   // ATTACK
@@ -87,26 +87,25 @@ function tick() {
   //
   // MOVEMENT
   //
-  const rangeMobToAttack = mobToAttack && distance(character, mobToAttack)
-  const rangeAggroMob = aggroMob ? distance(character, aggroMob) : null
   const leadGoingTo = { x: leadPlayer?.going_x, y: leadPlayer?.going_y }
   const rangeLeader = leadPlayer && distance(character, leadGoingTo)
 
   if (kitingMob && !aggroMob) stopKiting()
 
-  if ((kitingMob || (autoKite && aggroMob)) && rangeAggroMob <= safeRangeFor(aggroMob)) kite(aggroMob)
+  if ((kitingMob || (autoKite && aggroMob)) && radarRange(aggroMob) <= safeRangeFor(aggroMob)) kite(aggroMob)
   else if (autoStalk && mobToAttack && whichMob !== 'squishy') {
     if (is_moving(character)) {
       if (
-        (moveDirection === 'in' && rangeMobToAttack <= rangeStalk[1]) ||
-        (moveDirection === 'out' && rangeMobToAttack >= rangeStalk[0])
+        (moveDirection === 'in' && radarRange(mobToAttack) <= rangeStalk[1]) ||
+        (moveDirection === 'out' && radarRange(mobToAttack) >= rangeStalk[0])
       ) {
         stop() // in goldilocks zone
         moveDirection = null
       }
     } else { // not moving
-      if (rangeMobToAttack > character.range) moveToward(mobToAttack, rangeChunk)
-      else if (!meleeChar && rangeMobToAttack <= safeRangeFor(mobToAttack)) moveToward(mobToAttack, -rangeChunk)
+      if (radarRange(mobToAttack) > character.range) moveToward(mobToAttack, rangeChunk)
+      else if (radarRange(meanMob) <= safeRangeFor(meanMob)) moveToward(meanMob, -rangeChunk)
+      else if (!meleeChar && radarRange(mobToAttack) <= safeRangeFor(mobToAttack)) moveToward(mobToAttack, -rangeChunk)
       else moveDirection = null
     }
   }
@@ -154,6 +153,7 @@ const updateRadar = () => {
     radar.push({ mob, range })
   }
 }
+const radarRange = mob => radar.find(o => o.mob === mob)?.range
 
 const getNearestMonster = (args = {}) => {
   let min_d = rangeRadar,
@@ -163,6 +163,7 @@ const getNearestMonster = (args = {}) => {
     if (args.min_xp && mob.xp < args.min_xp) return
     if (args.max_att && mob.attack > args.max_att) return
     if (args.max_hp && mob.hp > args.max_hp) return
+    if (args.mean && !mob.aggro) return
     if (args.target && mob.target !== args.target) return
     if (args.no_target && mob.target && mob.target !== character.name) return
     if (args.path_check && !can_move_to(mob)) return
@@ -184,7 +185,9 @@ const moveToward = (point, distance) => {
   moveDirection = distance > 0 ? 'in' : 'out'
 }
 
-const safeRangeFor = mob => mob.range * 1.2 + 0.5 * mob.speed
+const safeRangeFor = mob => mob.range * 1.3 + 0.5 * mob.speed
+
+const smartFollow = () => smart_move(get_party()[leaderName])
 
 //
 // Hooks
