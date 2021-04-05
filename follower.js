@@ -1,3 +1,4 @@
+(function(){
 /*
  * Follower
  *
@@ -174,8 +175,6 @@ const getNearestMonster = (args = {}) => {
 
 const iAmTargetOf = x => x?.target === character.id
 
-const isSquishy = x => x?.hp <= squishyHp
-
 const moveToward = (point, distance) => {
   if (!can_move_to(point.x, point.y)) return smart_move(point)
   const dx = point.x - character.x
@@ -187,8 +186,6 @@ const moveToward = (point, distance) => {
 
 const safeRangeFor = mob => mob.range * 1.3 + 0.5 * mob.speed
 
-const smartFollow = () => smart_move(get_party()[leaderName])
-
 //
 // Hooks
 //
@@ -196,3 +193,5 @@ const smartFollow = () => smart_move(get_party()[leaderName])
 on_party_invite = name => {
   if (name === leaderName) accept_party_invite(name)
 }
+
+})() // with immediately invoked anonymous function wrapper, editor can highlight dead code.

@@ -1,25 +1,26 @@
+(function(){
 /*
- * Docs: https://github.com/kaansoral/adventureland
+ * Attacker
+ *
+ * @author Patrick Fisher <patrick@pwfisher.com>
+ * @see https://github.com/kaansoral/adventureland
  */
 const meleeChar = ['warrior', 'rogue'].includes(character.ctype)
 
 //
 // CONFIG
 //
-const autoDefend = true
-const autoKite = !meleeChar
 const autoRespawn = true
 const autoStalk = true
 const rangeChunk = character.speed * 1.0
 const rangeMelee = character.range * 0.5
 const rangeStalk = character.range * 0.9
-const squishyHp = character.attack * 0.95 // "squishy" = one-shot kill
 const tickDelay = 250
 
 //
 // STATE
 //
-let moveDirection = 'stop' // 'stop' | 'in' | 'out'
+let moveDirection = null // null | 'in' | 'out'
 
 //
 // TICK
@@ -50,7 +51,7 @@ function tick() {
       distance(character, mobToAttack) <= rangeStalk
     ) {
       stop() // in goldilocks zone
-      moveDirection = 'stop'
+      moveDirection = null
     }
   }
 
@@ -79,3 +80,5 @@ const moveToward = (point, distance) => {
 on_party_invite = name => {
   if (characterNames.includes(name)) accept_party_invite(name)
 }
+
+})() // with immediately invoked anonymous function wrapper, editor can highlight dead code.

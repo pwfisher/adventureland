@@ -1,9 +1,11 @@
+(function(){
 /*
  * Leader
  *
  * @author Patrick Fisher <patrick@pwfisher.com>
  * @see https://github.com/kaansoral/adventureland
  */
+const TEMPORARILY_OUT_OF_SERVICE = false
 const meleeChar = ['warrior', 'rogue'].includes(character.ctype)
 
 //
@@ -129,6 +131,7 @@ function tick() {
   const uiRange = radarRange(aggroMob) ? Math.round(radarRange(aggroMob)) : uiBlank
   const uiWhich = whichMob || uiBlank
   const uiDir = kitingMob ? 'kite' : moveDirection || uiBlank
+  console.log({ uiDir })
   set_message(`${uiRange} · ${uiWhich} · ${uiDir}`)
 }
 
@@ -198,7 +201,7 @@ const isPrey = x => x?.attack <= preyAtkMax
 const isSquishy = x => x?.hp <= squishyHp
 
 const moveToward = (point, distance) => {
-  if (!can_move_to(point.x, point.y)) smart_move({ x: point.x, y: point.y }) // don‘t want point.map
+  if (!can_move_to(point.x, point.y)) smart_move({ map: x: point.x, y: point.y }) // don‘t want point.map
   const dx = point.x - character.x
   const dy = point.y - character.y
   const magnitude = Math.sqrt(dx * dx + dy * dy)
@@ -219,11 +222,8 @@ const safeRangeFor = mob => mob.range * 1.3 + 0.5 * mob.speed
 // Hooks
 //
 
-// handle_command = (command, _arg) => {
-//   const { map, x, y } = character
-//   if (command === 'smart_follow') send_cm(followerNames, { 'task': 'move', map, x, y })
-// }
-
 on_party_invite = name => {
   if (characterNames.includes(name)) accept_party_invite(name)
 }
+
+})() // with immediately invoked anonymous function wrapper, editor can highlight dead code.
