@@ -20,12 +20,9 @@ const autoSquish = true
 const autoStalk = true
 const leaderName = 'Finger'
 const rangeChunk = character.speed
-const rangeClose = Math.min(50, character.range * 0.9)
 const rangeFollow = 10
-const rangeFollowOn = Infinity
-const rangeFollowOff = Infinity
 const rangeRadar = 2000
-const rangeStalk = [character.range * 0.7, character.range * 0.9]
+const rangeStalk = [character.range * 0.8, character.range]
 const squishyHp = character.attack * 0.95 // "squishy" = one-shot kill
 const tickDelay = 250
 
@@ -46,15 +43,17 @@ function tick() {
   use_hp_or_mp()
   loot()
   accept_magiport(leaderName)
-  if (character.bank) bank_deposit(character.bank.gold)
-
+  if (character.bank) bank_deposit(character.gold)
+  if (smart.moving) change_target(null)
+  else if (character.map !== 'arena') smart_move('arena')
+  
   //
   // RADAR
   //
   updateRadar()
   const lockMob = get_targeted_monster()
-  const aggroMob = getNearestMonster({ target: character.name })
-  const meanMob = getNearestMonster({ mean: true })
+  const aggroMob = getNearestMonster({ target: character.name, min_att: 1 })
+  const meanMob = getNearestMonster({ mean: true, min_att: 1 })
   const partyMob = getNearestMonster({ target: leaderName })
   const squishyMob = getNearestMonster({ min_xp: 1, max_hp: squishyHp }) // exclude negative xp (puppies)
   const leadPlayer = get_player(leaderName)
@@ -66,7 +65,7 @@ function tick() {
   if (
     iAmTargetOf(lockMob) &&
     (autoAttack || autoDefend) &&
-    (autoStalk || is_in_range(lockMob, 'attack'))
+    (autoStalk || radarRange(lockMob) < character.range)
   ) {
     whichMob = 'lock'
     mobToAttack = lockMob
@@ -93,7 +92,7 @@ function tick() {
 
   if (kitingMob && !aggroMob) stopKiting()
 
-  if ((kitingMob || (autoKite && aggroMob)) && radarRange(aggroMob) <= safeRangeFor(aggroMob)) kite(aggroMob)
+  if ((kitingMob || autoKite) && aggroMob && radarRange(aggroMob) <= safeRangeFor(aggroMob)) kite(aggroMob)
   else if (autoStalk && mobToAttack && whichMob !== 'squishy') {
     if (is_moving(character)) {
       if (
@@ -105,7 +104,7 @@ function tick() {
       }
     } else { // not moving
       if (radarRange(mobToAttack) > character.range) moveToward(mobToAttack, rangeChunk)
-      else if (radarRange(meanMob) <= safeRangeFor(meanMob)) moveToward(meanMob, -rangeChunk)
+      else if (meanMob && radarRange(meanMob) <= safeRangeFor(meanMob)) moveToward(meanMob, -rangeChunk)
       else if (!meleeChar && radarRange(mobToAttack) <= safeRangeFor(mobToAttack)) moveToward(mobToAttack, -rangeChunk)
       else moveDirection = null
     }
@@ -121,7 +120,7 @@ function tick() {
   //
   // UPDATE UI
   //
-  const uiRange = rangeAggroMob ? Math.round(rangeAggroMob) : uiBlank
+  const uiRange = radarRange(aggroMob) ? Math.round(radarRange(aggroMob)) : uiBlank
   const uiWhich = whichMob || uiBlank
   const uiDir = kitingMob ? 'kite' : moveDirection || uiBlank
   set_message(`${uiRange} · ${uiWhich} · ${uiDir}`)
@@ -141,8 +140,7 @@ const stopKiting = () => {
   kitingMob = null
   moveDirection = 'stop'
 }
-
-// "radar" caches distances for performance
+// "radar" caches "radar ping" (mob, distance) pairs for performance
 let radar = []
 const updateRadar = () => {
   radar = []
@@ -156,22 +154,27 @@ const updateRadar = () => {
 }
 const radarRange = mob => radar.find(o => o.mob === mob)?.range
 
-const getNearestMonster = (args = {}) => {
-  let min_d = rangeRadar,
-    result = null
-  radar.forEach(({ mob, range }) => {
-    if (args.mtype && mob.mtype !== args.mtype) return
-    if (args.min_xp && mob.xp < args.min_xp) return
-    if (args.max_att && mob.attack > args.max_att) return
-    if (args.max_hp && mob.hp > args.max_hp) return
-    if (args.mean && !mob.aggro) return
-    if (args.target && mob.target !== args.target) return
-    if (args.no_target && mob.target && mob.target !== character.name) return
-    if (args.path_check && !can_move_to(mob)) return
-    if (range < min_d) (min_d = range), (result = mob)
-  })
-  return result
-}
+const getNearestMonster = args => getClosestRadarPing(getRadarPings(args))
+
+const getClosestRadarPing = pings => pings.reduce(
+  (x, o) => o.range < x.range ? o : x,
+  { range: Infinity }
+)?.mob
+
+const getRadarPings = (args = {}) => radar.filter(({ mob }) => {
+  if (mob.name === 'Target Automatron') return false
+  if (mob.map !== character.map) return
+  if (args.is_juicy && mob.xp > mob.hp * 1.5) return false
+  if (args.mtype && mob.mtype !== args.mtype) return false
+  if (args.min_xp && mob.xp < args.min_xp) return false
+  if (args.min_att && mob.attack > args.min_att) return false
+  if (args.max_att && mob.attack > args.max_att) return false
+  if (args.max_hp && mob.hp > args.max_hp) return false
+  if (args.target && mob.target !== args.target) return false
+  if (args.no_target && mob.target && mob.target !== character.name) return false
+  if (args.path_check && !can_move_to(mob)) return false
+  return true
+})
 
 const iAmTargetOf = x => x?.target === character.id
 
@@ -184,7 +187,7 @@ const moveToward = (point, distance) => {
   moveDirection = distance > 0 ? 'in' : 'out'
 }
 
-const safeRangeFor = mob => mob.range * 1.3 + 0.5 * mob.speed
+const safeRangeFor = mob => mob.attack === 0 ? 0 : mob.range * 1.3 + 0.5 * mob.speed
 
 //
 // Hooks

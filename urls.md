@@ -1,7 +1,7 @@
 - https://adventure.land/com -- launcher (com = ?)
 - https://adventure.land/comm -- viewer (comm = commander?)
-- http://adventure.land/docs
-- http://adventure.land/docs/code/functions/smart_move -- overloaded function signature w/out TypeScript, yikes. (nice interface, though)
+- https://adventure.land/docs
+- https://adventure.land/docs/code/functions/smart_move -- overloaded function signature w/out TypeScript, yikes. (nice interface, though)
 
 - https://github.com/kaansoral/adventureland
 - https://github.com/pwfisher/adventureland

@@ -1,4 +1,14 @@
+start_character('Zinger', 'Follower')
+
+send_item('Dinger', slot, quantity)
+
 smart_move(get_party()['Finger'])
+
+smart_move('town', () => parent.socket.emit('interaction', { type: 'newyear_tree' }))
+
+character_code_eval('Zinger', `
+  smart_move(get_party()['Finger'])
+`)
 
 show_json(get_party())
 
