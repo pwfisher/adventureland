@@ -36,12 +36,16 @@ function tick() {
   loot()
 
   //
-  // ATTACK
+  // RADAR
   //
+  updateRadar()
   const lockMob = get_targeted_monster()
   const aggroMob = getNearestMonster({ target: character.name, min_att: 1 })
   const nearMob = getNearestMonster()
 
+  //
+  // ATTACK
+  //
   if (autoAttack && lockMob) {
     whichMob = 'lock'
     mobToAttack = nearMob
@@ -118,7 +122,7 @@ const getRadarPings = (args = {}) => radar.filter(({ mob }) => {
   if (args.is_juicy && mob.xp > mob.hp * 1.5) return false
   if (args.mtype && mob.mtype !== args.mtype) return false
   if (args.min_xp && mob.xp < args.min_xp) return false
-  if (args.min_att && mob.attack > args.min_att) return false
+  if (args.min_att && mob.attack < args.min_att) return false
   if (args.max_att && mob.attack > args.max_att) return false
   if (args.max_hp && mob.hp > args.max_hp) return false
   if (args.target && mob.target !== args.target) return false

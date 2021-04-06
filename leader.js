@@ -21,6 +21,7 @@
   const autoSquish = true
   const autoStalk = true
   const characterNames = ['Binger', 'Finger', 'Zinger']
+  const codeFollower = 'Follower'
   const preyAtkMax = 1000
   const preyXpMin = 300
   const rangeChunk = character.speed
@@ -28,6 +29,7 @@
   const rangeRadar = 2000
   const rangeStalk = [character.range * 0.8, character.range]
   const tickDelay = 250
+  const timeStartup = 7000
   const uiBlank = '--'
   
   // computed config
@@ -40,7 +42,13 @@
   let moveDirection = null // null | 'in' | 'out' | 'kite'
   let whichMob = null
   let mobToAttack = null
-  
+
+  //
+  // INIT
+  //
+  set('config', { autoMap, leaderName: character.name })
+  if (autoParty) startFollowers()
+
   //
   // TICK
   //
@@ -57,7 +65,7 @@
     loot()
     if (character.bank) bank_deposit(character.gold)
     if (smart.moving) change_target(null)
-    else if (character.map !== autoMap) smart_move(autoMap)
+    else if (autoMap && character.map !== autoMap) smart_move(autoMap)
   
     //
     // RADAR
@@ -65,6 +73,7 @@
     updateRadar()
     const lockMob = get_targeted_monster()
     const aggroMob = getNearestMonster({ target: character.name, min_att: 1 })
+    // TODO partyMob, party member aggro
     const meanMob = getNearestMonster({ mean: true, min_att: 1 })
     const juicyMob = getNearestMonster({ is_juicy: true })
     const preyMob = getNearestMonster({ min_xp: preyXpMin, max_att: preyAtkMax })
@@ -102,7 +111,7 @@
     } else if (squishyMob && autoSquish && is_in_range(squishyMob, 'attack')) {
       whichMob = 'squishy'
       mobToAttack = squishyMob
-    } else if (mobToAttack && mobToAttack.dead) {
+    } else {
       whichMob = null
       mobToAttack = null
     }
@@ -190,7 +199,7 @@
     if (args.is_juicy && mob.xp > mob.hp * 1.5) return false
     if (args.mtype && mob.mtype !== args.mtype) return false
     if (args.min_xp && mob.xp < args.min_xp) return false
-    if (args.min_att && mob.attack > args.min_att) return false
+    if (args.min_att && mob.attack < args.min_att) return false
     if (args.max_att && mob.attack > args.max_att) return false
     if (args.max_hp && mob.hp > args.max_hp) return false
     if (args.target && mob.target !== args.target) return false
@@ -199,7 +208,6 @@
     return true
   })
   
-  // TODO: if multiple juicy in range, choose juiciest
   // Case: froggie over tortoise
   // -- choose juiciest prey closer than (character.range + character.speed * 0.3)
   // -- i.e. I will wait 30% of a step for a juicier target
@@ -211,12 +219,11 @@
   //   }
   //   else return getNearestMonster({ min_xp: preyXpMin, max_att: preyAtkMax })
   // }
-  // TODO exclude automatrons: too unjuicy
   
   const iAmTargetOf = x => x?.target === character.id
   
   const moveToward = (point, distance) => {
-    if (!can_move_to(point.x, point.y)) smart_move({ x: point.x, y: point.y }) // don‘t want point.map
+    if (!can_move_to(point.x, point.y)) return smart_move({ x: point.x, y: point.y }) // don‘t want point.map
     const dx = point.x - character.x
     const dy = point.y - character.y
     const magnitude = Math.sqrt(dx * dx + dy * dy)
@@ -231,8 +238,24 @@
     }
   }
   
-  const safeRangeFor = mob => mob.attack === 0 ? 0 : mob.range * 1.3 + 0.5 * mob.speed
-  
+  const safeRangeFor = mob => mob.attack === 0 ? 0 : mob.range * 1.1 + mob.speed
+
+  function startFollowers() {
+    followerNames.forEach((name, index) => {
+      if (!get_player(name)) {
+        setTimeout(() => start_character(name, codeFollower), index * timeStartup)
+        setTimeout(() => comeToMe(name), index * timeStartup + timeStartup)
+        setTimeout(() => comeToMe(name), index * timeStartup + timeStartup * 2)
+      }
+    })
+  }
+
+  function comeToMe(name) {
+    const { map, real_x, real_y } = character
+    const snippet = `smart_move({ map: '${map}', x: ${real_x}, y: ${real_y}})`
+    parent.character_code_eval(name, snippet)
+  }
+
   //
   // Hooks
   //

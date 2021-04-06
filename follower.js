@@ -15,23 +15,24 @@ const autoAttack = true
 const autoDefend = true
 const autoFollow = true
 const autoKite = !meleeChar
+const autoMap = get('config').autoMap
 const autoRespawn = true
 const autoSquish = true
 const autoStalk = true
-const leaderName = 'Finger'
+const leaderName = get('config').leaderName || 'Finger'
 const rangeChunk = character.speed
-const rangeFollow = 10
+const rangeFollow = 20
 const rangeRadar = 2000
 const rangeStalk = [character.range * 0.8, character.range]
-const squishyHp = character.attack * 0.95 // "squishy" = one-shot kill
 const tickDelay = 250
 
 //
 // STATE
 //
 let kitingMob = null
-let moveDirection = 'stop' // 'stop' | 'in' | 'out'
-let whichMob = 'none'
+let moveDirection = null // null | 'in' | 'out'
+let whichMob = null
+let mobToAttack = null
 
 //
 // TICK
@@ -45,7 +46,7 @@ function tick() {
   accept_magiport(leaderName)
   if (character.bank) bank_deposit(character.gold)
   if (smart.moving) change_target(null)
-  else if (character.map !== 'arena') smart_move('arena')
+  else if (autoMap && character.map !== autoMap) smart_move(autoMap)
   
   //
   // RADAR
@@ -54,14 +55,13 @@ function tick() {
   const lockMob = get_targeted_monster()
   const aggroMob = getNearestMonster({ target: character.name, min_att: 1 })
   const meanMob = getNearestMonster({ mean: true, min_att: 1 })
-  const partyMob = getNearestMonster({ target: leaderName })
-  const squishyMob = getNearestMonster({ min_xp: 1, max_hp: squishyHp }) // exclude negative xp (puppies)
+  const partyMob = getNearestMonster({ target: leaderName }) // should include any party member targeted
+  const squishyMob = getNearestMonster({ min_xp: 1, max_hp: character.attack * 0.95 }) // exclude negative xp (puppies)
   const leadPlayer = get_player(leaderName)
 
   //
   // ATTACK
   //
-  let mobToAttack = null
   if (
     iAmTargetOf(lockMob) &&
     (autoAttack || autoDefend) &&
@@ -79,7 +79,8 @@ function tick() {
     whichMob = 'squishy'
     mobToAttack = squishyMob
   } else {
-    whichMob = 'none'
+    whichMob = null
+    mobToAttack = null
   }
 
   if (can_attack(mobToAttack)) attack(mobToAttack)
@@ -167,7 +168,7 @@ const getRadarPings = (args = {}) => radar.filter(({ mob }) => {
   if (args.is_juicy && mob.xp > mob.hp * 1.5) return false
   if (args.mtype && mob.mtype !== args.mtype) return false
   if (args.min_xp && mob.xp < args.min_xp) return false
-  if (args.min_att && mob.attack > args.min_att) return false
+  if (args.min_att && mob.attack < args.min_att) return false
   if (args.max_att && mob.attack > args.max_att) return false
   if (args.max_hp && mob.hp > args.max_hp) return false
   if (args.target && mob.target !== args.target) return false

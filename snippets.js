@@ -1,3 +1,5 @@
+use_skill('town')
+
 start_character('Zinger', 'Follower')
 
 send_item('Dinger', slot, quantity)
@@ -11,6 +13,7 @@ character_code_eval('Zinger', `
 `)
 
 show_json(get_party())
+show_json(smart)
 
 console.log({ x: Math.round(character.real_x), y: Math.round(character.real_y) })
 
