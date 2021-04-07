@@ -7,33 +7,43 @@ const autoParty = false
 const autoStand = true
 const autoUpgrade = true
 const characterNames = ['Binger', 'Finger', 'Zinger']
-const tickDelay = 250
 
 //
-// INIT
+// Startup
 //
-openStandInTown()
+if (autoParty) partyUp()
 
 //
 // Loop
 //
 setInterval(() => {
-  if (autoExchange && !character.q.exchange && G.items[character.items[0]?.name]?.e) exchange(0)
-  if (autoParty) partyUp()
-  if (autoStand) {
-    if (is_moving(character) && character.stand) close_stand()
-    else if (!is_moving(character) && !character.stand) open_stand()
-  }
-  if (autoUpgrade && !character.q.upgrade && character.items[1]?.name.includes('scroll')) {
-    if (character.items[0]?.level < 7) upgrade(0, 1)
-    else if (autoItem && !character.items[0]) buy(autoItem)
-  }
-}, tickDelay)
+  doAutoUpgrade()
+  doAutoExchange()
+  doAutoStand()
+}, 250)
 
 //
 // Functions
 //
-function openStandInTown() { // h/t johnnyawesome
+function doAutoUpgrade() {
+  const [slot, scrollSlot] = [0, 1]
+  if (!autoUpgrade || character.q.upgrade || !character.items[scrollSlot]?.name.includes('scroll')) return
+  if (character.items[slot]?.level < 7) upgrade(slot, scrollSlot)
+  else if (autoItem && !character.items[0]) buy(autoItem)
+}
+
+function doAutoExchange() {
+  const slot = 0
+  if (autoExchange && !character.q.exchange && G.items[character.items[slot]?.name]?.e) exchange(slot)
+}
+
+function doAutoStand() {
+  if (!autoStand) return
+  if (is_moving(character) && character.stand) close_stand()
+  else if (!is_moving(character) && !character.stand) open_stand()
+}
+
+function openMerchantStand() { // h/t johnnyawesome
 	if (is_moving(character)) return
   if (character.stand) close_stand()
 	smart_move({
