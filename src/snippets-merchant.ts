@@ -92,6 +92,7 @@
   // ------
 
   // compoundItem({ type: 'hpamulet', level: 1 })
+  bankStoreAll()
 
   // ------
 })()

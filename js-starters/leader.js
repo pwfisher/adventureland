@@ -13,7 +13,7 @@
   const autoAttack = true
   const autoDefend = true
   const autoKite = !meleeChar
-  const autoMap = '' // 'arena'
+  const autoMap = 'arena'
   const autoParty = true
   const autoRespawn = true
   const autoRest = false
@@ -46,7 +46,7 @@
   //
   // INIT
   //
-  set('follower-config', { autoMap, leaderName })
+  set('follower-config', { leaderName })
   if (autoParty) startFollowers()
 
   //
@@ -59,20 +59,13 @@
       mobToAttack = null
       moveDirection = null
       whichMob = null
-      if (autoRespawn && character.rip) respawn()
-      return
-    }
-
-    if (character.rip) {
-      whichMob = null
-      moveDirection = null
       if (autoRespawn) respawn()
       return
     }
     use_hp_or_mp()
     loot()
     if (autoParty) partyUp()
-  
+
     //
     // RADAR
     //
@@ -135,14 +128,10 @@
     // MOVEMENT
     //
     if (kitingMob && !aggroMob) stopKiting()
-    if (!is_moving(character)) moveDirection = null
 
-    if (moveDirection = 'map') {}
-    else if (autoMap && character.map && targetMap && character.map !== targetMap) {
-      moveDirection = 'map'
-      smart_move(targetMap)
-    }
+    if (autoMap && character.map !== autoMap && !is_moving(character)) smart_move(autoMap)
     else if ((kitingMob || autoKite) && aggroMob && radarRange(aggroMob) <= safeRangeFor(aggroMob)) kite(aggroMob)
+    else if (rageMob && radarRange(rageMob) <= safeRangeFor(rageMob)) moveToward(rageMob, -rangeChunk)
     else if (autoStalk && mobToAttack && whichMob !== 'squishy') {
       if (is_moving(character)) {
         if (
@@ -154,7 +143,6 @@
         }
       } else { // not moving
         if (radarRange(mobToAttack) > character.range) moveToward(mobToAttack, rangeChunk)
-        else if (rageMob && radarRange(rageMob) <= safeRangeFor(rageMob)) moveToward(rageMob, -rangeChunk)
         else if (autoKite && radarRange(mobToAttack) <= safeRangeFor(mobToAttack)) moveToward(mobToAttack, -rangeChunk)
         else moveDirection = null
       }

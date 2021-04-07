@@ -14,7 +14,6 @@
   const autoDefend = true
   const autoFollow = true
   const autoKite = !meleeChar
-  const autoMap = get('follower-config')?.autoMap
   const autoRespawn = true
   const autoSquish = true
   const autoStalk = true
@@ -41,14 +40,14 @@
   //
   setInterval(tick, tickDelay)
   function tick() {
-    ({ leader, leaderSmart } = get('leader-state') ?? {})
+    ({ character: leader, smart: leaderSmart } = get('leader-state') ?? {})
 
     if (character.rip) {
       kitingMob = null
       mobToAttack = null
       moveDirection = null
       whichMob = null
-      if (autoRespawn && character.rip) respawn()
+      if (autoRespawn) respawn()
       return
     }
     use_hp_or_mp()
@@ -61,7 +60,7 @@
     updateRadar()
     const lockMob = get_targeted_monster()
     const aggroMob = getNearestMonster({ target: character.name, min_att: 1 })
-    const meanMob = getNearestMonster({ mean: true, min_att: 1 })
+    const rageMob = getNearestMonster({ rage: true, min_att: 1 })
     const partyMob = getNearestMonster({ target: leaderName }) // should include any party member targeted
     const squishyMob = getNearestMonster({ min_xp: 1, max_hp: character.attack * 0.95 }) // exclude negative xp (puppies)
     const leadPlayer = get_player(leaderName)
@@ -97,19 +96,11 @@
     //
     const leadGoingTo = { x: leadPlayer?.going_x, y: leadPlayer?.going_y }
     const rangeLeader = leadPlayer && distance(character, leadGoingTo)
-    const targetMap = getTargetMap()
-    console.log('a', { map: character.map, targetMap })
 
     if (kitingMob && !aggroMob) stopKiting()
-    if (!is_moving(character)) moveDirection = null
 
-    if (moveDirection = 'map') {}
-    else if (autoMap && character.map && targetMap && character.map !== targetMap) {
-      // moveDirection = 'map'
-      console.log('b', { map: character.map, targetMap })
-      smart_move(targetMap)
-    }
-    else if ((kitingMob || autoKite) && aggroMob && radarRange(aggroMob) <= safeRangeFor(aggroMob)) kite(aggroMob)
+    if ((kitingMob || autoKite) && aggroMob && radarRange(aggroMob) <= safeRangeFor(aggroMob)) kite(aggroMob)
+    else if (rageMob && radarRange(rageMob) <= safeRangeFor(rageMob)) moveToward(rageMob, -rangeChunk)
     else if (autoStalk && mobToAttack && whichMob !== 'squishy') {
       if (is_moving(character)) {
         if (
@@ -121,7 +112,6 @@
         }
       } else { // not moving
         if (radarRange(mobToAttack) > character.range) moveToward(mobToAttack, rangeChunk)
-        else if (meanMob && radarRange(meanMob) <= safeRangeFor(meanMob)) moveToward(meanMob, -rangeChunk)
         else if (!meleeChar && radarRange(mobToAttack) <= safeRangeFor(mobToAttack)) moveToward(mobToAttack, -rangeChunk)
         else moveDirection = null
       }
@@ -141,11 +131,6 @@
     const uiWhich = whichMob?.slice(0, 5) || uiBlank
     const uiDir = kitingMob ? 'kite' : moveDirection ? moveDirection : uiBlank
     set_message(`${uiRange} · ${uiWhich} · ${uiDir}`)
-
-    //
-    // UPDATE LOCAL STORAGE
-    //
-    set('leader-state', { character, mobToAttack, smart, whichMob })
   }
 
   //
@@ -198,12 +183,6 @@
     if (args.path_check && !can_move_to(mob)) return false
     return true
   })
-
-  const getTargetMap = () => {
-    if (leaderSmart?.moving) return leaderSmart.map
-    if (leader?.map && leader.map !== character.map) return leader.map
-    return autoMap || character.map
-  }
 
   const iAmTargetOf = x => x?.target === character.id
 

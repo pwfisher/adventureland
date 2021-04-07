@@ -49,7 +49,7 @@
   //
   // INIT
   //
-  set('follower-config', { autoHostile, autoMap, autoPriority, characterNames, leaderName, priorityMobTypes })
+  set('follower-config', { autoHostile, autoPriority, characterNames, leaderName, priorityMobTypes })
   if (autoParty) startFollowers()
 
   //
@@ -61,11 +61,12 @@
     if (character.rip) {
       whichMob = null
       moveDirection = null
-      if (autoRespawn && character.rip) respawn()
+      if (autoRespawn) respawn()
       return
     }
     use_hp_or_mp()
     loot()
+    friendNames.forEach(x => accept_magiport(x))
 
     //
     // RADAR
@@ -204,6 +205,7 @@
   // Case: froggie over tortoise
   // -- choose juiciest prey closer than (character.range + character.speed * 0.3)
   // -- i.e. I will wait 30% of a step for a juicier target
+  // + don't shoot the fairy
   // const getPreyMob = () => {
   //   const preferredMobs = getRadarPings({ is_juicy: true })
   //   if (autoJuicy && preferredMobs.length) {

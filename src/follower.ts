@@ -16,7 +16,6 @@
   const autoFollow = true
   const autoHostile = get('follower-config')?.autoHostile
   const autoKite = !meleeChar
-  const autoMap = get('follower-config')?.autoMap
   const autoPriority = get('follower-config')?.autoPriority
   const autoRespawn = true
   const autoSquish = true
@@ -51,11 +50,17 @@
   function tick() {
     ({ character: leader, mobToAttack: leaderMob, smart: leaderSmart } = get('leader-state') || {})
 
-    if (autoRespawn && character.rip) respawn()
-    if (character.rip) return
+    if (character.rip) {
+      kitingMob = null
+      mobToAttack = null
+      moveDirection = null
+      whichMob = null
+      if (autoRespawn) respawn()
+      return
+    }
     use_hp_or_mp()
     loot()
-    friendNames.forEach(x => accept_magiport(x))
+    accept_magiport(leaderName)
 
     //
     // RADAR
@@ -111,12 +116,12 @@
     // MOVEMENT
     //
     const leadGoingTo = { x: leader?.going_x, y: leader?.going_y }
-    const rangeLeader = leader && distance(character, leadGoingTo)
-    const targetMap = getTargetMap(leaderSmart)
+    const rangeLeader = leader && distance(character, leadGoingTo) // not radarRange(leader)
+    const leaderMap = leaderSmart?.moving ? leaderSmart.map : leader?.map
 
     if (kitingMob && !radarMobs.aggro) stopKiting()
 
-    if (autoMap && character.map !== targetMap)
+    if (autoFollow && leadercharacter.map !== targetMap)
       if (!smart.moving) smart_move(targetMap)
     else if ((kitingMob || autoKite) && radarMobs.aggro && radarRange(radarMobs.aggro) <= safeRangeFor(radarMobs.aggro)) kite(radarMobs.aggro)
     else if (autoStalk && mobToAttack && mobToAttack.map === character.map) {
@@ -152,7 +157,7 @@
     //
     const uiRange = radarRange(mobToAttack) ? Math.round(radarRange(mobToAttack)) : uiBlank
     const uiWhich = whichMob?.slice(0, 5) || uiBlank
-    const uiDir = kitingMob ? 'kite' : moveDirection || uiBlank
+    const uiDir = kitingMob ? 'kite' : moveDirection ? moveDirection : uiBlank
     set_message(`${uiRange} · ${uiWhich} · ${uiDir}`)
   }
 
@@ -207,12 +212,6 @@
     if (args.path_check && !can_move_to(mob)) return false
     return true
   })
-
-  const getTargetMap = () => {
-    if (leaderSmart?.moving) return leaderSmart.map
-    if (leader?.map && leader.map !== character.map) return leaderMap
-    return autoMap || character.map
-  }
 
   const iAmTargetOf = x => x?.target === character.id
 
