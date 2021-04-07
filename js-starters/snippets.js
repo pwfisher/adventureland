@@ -5,6 +5,9 @@ use_skill('town')
 start_character('Zinger', 'Follower')
 
 send_item('Dinger', slot, quantity)
+character.items.filter(Boolean).forEach((_item, slot) => {
+  send_item('Dinger', slot, 999)
+})
 
 // Unreliable, because get_party() data goes stale. But simple and often useful.
 // -- Better to use local storage to pass data between party members.

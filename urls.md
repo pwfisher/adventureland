@@ -6,7 +6,7 @@ Game
 - https://adventure.land/character/Finger/in/US/I/
 - https://adventure.land/character/Finger/in/US/II/
 - https://adventure.land/character/Finger/in/US/III/
-- https://adventure.land/character/Finger/in/US/PVP/
+- https://adventure.land/character/Dinger/in/US/PVP/
 
 Docs
 

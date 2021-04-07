@@ -29,8 +29,6 @@
   // STATE
   //
   let kitingMob = null
-  let leader
-  let leaderSmart
   let mobToAttack = null
   let moveDirection = null // null | 'in' | 'out' | 'map'
   let whichMob = null
@@ -117,10 +115,8 @@
       }
     }
     else if (autoFollow && !is_moving(character)) {
-      if (rangeLeader > rangeFollow) {
-        moveToward(leadGoingTo, Math.min(rangeChunk, rangeLeader))
-        moveDirection = 'follow'
-      }
+      if (!leadPlayer) travelTo(leaderName)
+      else if (rangeLeader > rangeFollow) moveToward(leadGoingTo, Math.min(rangeChunk, rangeLeader))
       else moveDirection = null
     }
 
@@ -195,7 +191,12 @@
     moveDirection = distance > 0 ? 'in' : 'out'
   }
 
-  const safeRangeFor = mob => mob.attack === 0 ? 0 : mob.range * 1.3 + 0.5 * mob.speed
+  const safeRangeFor = mob => mob.attack === 0 ? 0 : mob.range * 1.1 + mob.speed
+
+  const travelTo = name => {
+    const o = get_party()[name]
+    if (o && (o.in === o.map || o.in === character.in)) smart_move(o)
+  }
 
   //
   // Hooks
