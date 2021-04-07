@@ -21,15 +21,25 @@
   //
   // STATE
   //
+  let mobToAttack = null
   let moveDirection = null // null | 'in' | 'out'
   let whichMob = null
-  let mobToAttack = null
 
   //
   // TICK
   //
   setInterval(tick, tickDelay)
   function tick() {
+    if (character.rip) {
+      mobToAttack = null
+      moveDirection = null
+      whichMob = null
+      if (autoRespawn) respawn()
+      return
+    }
+    use_hp_or_mp()
+    loot()
+    accept_magiport(leaderName)
     if (autoRespawn && character.rip) respawn()
     if (character.rip) return
     use_hp_or_mp()

@@ -1,5 +1,5 @@
 (function(){
-  /*
+  /**
    * Follower
    *
    * @author Patrick Fisher <patrick@pwfisher.com>
@@ -14,11 +14,11 @@
   const autoDefend = true
   const autoFollow = true
   const autoKite = !meleeChar
-  const autoMap = get('config').autoMap
+  const autoMap = get('follower-config')?.autoMap
   const autoRespawn = true
   const autoSquish = true
   const autoStalk = true
-  const leaderName = get('config').leaderName || 'Finger'
+  const leaderName = get('follower-config')?.leaderName || 'Finger'
   const rangeChunk = character.speed
   const rangeFollow = 20
   const rangeRadar = 2000
@@ -30,11 +30,11 @@
   // STATE
   //
   let kitingMob = null
-  let moveDirection = null // null | 'in' | 'out'
-  let whichMob = null
+  let leader
+  let leaderSmart
   let mobToAttack = null
-  let leader = {}
-  let leaderSmart = {}
+  let moveDirection = null // null | 'in' | 'out' | 'map'
+  let whichMob = null
 
   //
   // TICK
@@ -43,15 +43,18 @@
   function tick() {
     ({ leader, leaderSmart } = get('leader-state') ?? {})
 
-    if (autoRespawn && character.rip) respawn()
-    if (character.rip) return
+    if (character.rip) {
+      kitingMob = null
+      mobToAttack = null
+      moveDirection = null
+      whichMob = null
+      if (autoRespawn && character.rip) respawn()
+      return
+    }
     use_hp_or_mp()
     loot()
     accept_magiport(leaderName)
-    if (character.bank) bank_deposit(character.gold)
-    if (smart.moving) change_target(null)
-    else if (autoMap && character.map !== autoMap) smart_move(autoMap)
-    
+
     //
     // RADAR
     //
@@ -95,11 +98,17 @@
     const leadGoingTo = { x: leadPlayer?.going_x, y: leadPlayer?.going_y }
     const rangeLeader = leadPlayer && distance(character, leadGoingTo)
     const targetMap = getTargetMap()
+    console.log('a', { map: character.map, targetMap })
 
     if (kitingMob && !aggroMob) stopKiting()
+    if (!is_moving(character)) moveDirection = null
 
-    if (autoMap && character.map !== targetMap)
-      if (!smart.moving) smart_move(autoMap)
+    if (moveDirection = 'map') {}
+    else if (autoMap && character.map && targetMap && character.map !== targetMap) {
+      // moveDirection = 'map'
+      console.log('b', { map: character.map, targetMap })
+      smart_move(targetMap)
+    }
     else if ((kitingMob || autoKite) && aggroMob && radarRange(aggroMob) <= safeRangeFor(aggroMob)) kite(aggroMob)
     else if (autoStalk && mobToAttack && whichMob !== 'squishy') {
       if (is_moving(character)) {
@@ -129,8 +138,8 @@
     // UPDATE UI
     //
     const uiRange = radarRange(aggroMob) ? Math.round(radarRange(aggroMob)) : uiBlank
-    const uiWhich = whichMob?.slice(0, 4) || uiBlank
-    const uiDir = kitingMob ? 'kite' : moveDirection || uiBlank
+    const uiWhich = whichMob?.slice(0, 5) || uiBlank
+    const uiDir = kitingMob ? 'kite' : moveDirection ? moveDirection : uiBlank
     set_message(`${uiRange} · ${uiWhich} · ${uiDir}`)
 
     //
@@ -153,6 +162,7 @@
     kitingMob = null
     moveDirection = null
   }
+
   // "radar" caches "radar ping" (mob, distance) pairs for performance
   let radar = []
   const updateRadar = () => {
@@ -190,8 +200,8 @@
   })
 
   const getTargetMap = () => {
-    if (leaderSmart.moving) return leaderSmart.map
-    if (leader.map && leader.map !== character.map) return leaderMap
+    if (leaderSmart?.moving) return leaderSmart.map
+    if (leader?.map && leader.map !== character.map) return leader.map
     return autoMap || character.map
   }
 
@@ -211,10 +221,8 @@
   //
   // Hooks
   //
-
   on_party_invite = name => {
     if (name === leaderName) accept_party_invite(name)
   }
-
-})() // with immediately invoked anonymous function wrapper, editor can highlight dead code.
+})()
 // end follower.js

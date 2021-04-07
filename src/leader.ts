@@ -147,7 +147,7 @@
     // UPDATE UI
     //
     const uiRange = radarRange(aggroMob) ? Math.round(radarRange(aggroMob)) : uiBlank
-    const uiWhich = whichMob?.slice(0, 4) || uiBlank
+    const uiWhich = whichMob?.slice(0, 5) || uiBlank
     const uiDir = kitingMob ? 'kite' : (moveDirection ? moveDirection : uiBlank)
     set_message(`${uiRange} · ${uiWhich} · ${uiDir}`)
 
@@ -266,24 +266,22 @@
   on_party_invite = name => {
     if (characterNames.includes(name)) accept_party_invite(name)
   }
-  
+
+  // override game `set` to strip circular references
+  window.set = (key, value) => {
+    try {
+      window.localStorage.setItem(
+        `cstore_${key}`,
+        JSON.stringify(value, (k, v) => {
+          if (k[0] === '_') return null
+          return ['children','parent','scope'].includes(k) ? null : v
+        })
+      )
+      return true
+    } catch (e) {
+      game_log(`set() call failed for: ${key}, reason: ${e}`)
+      return false
+    }
+  }
 })()
-
-// override game `set` to strip circular references
-window.set = (key, value) => {
-	try {
-		window.localStorage.setItem(
-      `cstore_` + key,
-      JSON.stringify(value, (k, v) => {
-        if (k[0] === '_') return null
-        return ['children','parent','scope'].includes(k) ? null : v
-      })
-    )
-		return true
-	} catch (e) {
-		game_log(`set() call failed for: ${key}, reason: ${e}`)
-		return false
-	}
-}
-
 // end leader.js

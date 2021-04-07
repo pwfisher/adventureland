@@ -43,19 +43,6 @@ function doAutoStand() {
   else if (!is_moving(character) && !character.stand) open_stand()
 }
 
-function openMerchantStand() { // h/t johnnyawesome
-	if (is_moving(character)) return
-  if (character.stand) close_stand()
-	smart_move({
-		map: 'main',
-		x: -100 - Math.round(Math.random() * 50),
-		y: -100 - Math.round(Math.random() * 50),
-	}, () => {
-		move(character.x, character.y + 1) // face front
-		open_stand()
-	})
-}
-
 function partyUp() {
   const partyNames = Object.keys(get_party())
   for (const name of characterNames) {

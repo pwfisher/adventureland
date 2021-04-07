@@ -1,5 +1,14 @@
+Game
+
 - https://adventure.land/com -- launcher (com = ?)
 - https://adventure.land/comm -- viewer (comm = commander?)
+
+- https://adventure.land/character/Finger/in/US/I/
+- https://adventure.land/character/Finger/in/US/II/
+- https://adventure.land/character/Finger/in/US/III/
+- https://adventure.land/character/Finger/in/US/PVP/
+
+Docs
 
 - Docs https://adventure.land/docs
 - Docs https://github.com/kaansoral/adventureland
@@ -8,14 +17,15 @@
 - Unofficial Docs https://nexusnull.github.io/adventureland (NexusNull online 2021-04)
 - Sin's Guide https://steamcommunity.com/sharedfiles/filedetails/?id=1636142608 (SinBot online 2021-04)
 
-- https://github.com/pwfisher/adventureland
-- https://github.com/saevarb/adventureland-typescript-starter
-- https://github.com/earthiverse/adventureland-bots - still online. now owns AL-client repo.
-- https://github.com/jorbo/adventureland
-- https://github.com/johnnyawesome/Adventure.Land
-- https://github.com/riverdusty/AdventureLand
+Tools
 
-- https://adventure.land/character/Finger/in/US/I/
-- https://adventure.land/character/Finger/in/US/II/
-- https://adventure.land/character/Finger/in/US/III/
-- https://adventure.land/character/Finger/in/US/PVP/
+- https://github.com/saevarb/adventureland-typescript-starter
+- https://github.com/earthiverse/ALClient
+
+Coders
+
+- https://github.com/earthiverse/adventureland-bots
+- https://github.com/johnnyawesome/Adventure.Land
+- https://github.com/jorbo/adventureland
+- https://github.com/pwfisher/adventureland
+- https://github.com/riverdusty/AdventureLand

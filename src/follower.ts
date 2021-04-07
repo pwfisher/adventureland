@@ -37,16 +37,19 @@
   // STATE
   //
   let kitingMob = null
+  let leader
+  let leaderMob
+  let leaderSmart
+  let mobToAttack = null
   let moveDirection = null // null | 'in' | 'out' | 'map'
   let whichMob = null
-  let mobToAttack = null
 
   //
   // TICK
   //
   setInterval(tick, tickDelay)
   function tick() {
-    const { character: leader, mobToAttack: leaderMob, smart: leaderSmart } = get('leader-state') || {}
+    ({ character: leader, mobToAttack: leaderMob, smart: leaderSmart } = get('leader-state') || {})
 
     if (autoRespawn && character.rip) respawn()
     if (character.rip) return
@@ -114,7 +117,7 @@
     if (kitingMob && !radarMobs.aggro) stopKiting()
 
     if (autoMap && character.map !== targetMap)
-      if (!smart.moving) smart_move(autoMap)
+      if (!smart.moving) smart_move(targetMap)
     else if ((kitingMob || autoKite) && radarMobs.aggro && radarRange(radarMobs.aggro) <= safeRangeFor(radarMobs.aggro)) kite(radarMobs.aggro)
     else if (autoStalk && mobToAttack && mobToAttack.map === character.map) {
       if (is_moving(character)) {
@@ -148,7 +151,7 @@
     // UPDATE UI
     //
     const uiRange = radarRange(mobToAttack) ? Math.round(radarRange(mobToAttack)) : uiBlank
-    const uiWhich = whichMob?.slice(0, 4) || uiBlank
+    const uiWhich = whichMob?.slice(0, 5) || uiBlank
     const uiDir = kitingMob ? 'kite' : moveDirection || uiBlank
     set_message(`${uiRange} · ${uiWhich} · ${uiDir}`)
   }
@@ -206,8 +209,8 @@
   })
 
   const getTargetMap = () => {
-    if (leaderSmart.moving) return leaderSmart.map
-    if (leader.map && leader.map !== character.map) return leaderMap
+    if (leaderSmart?.moving) return leaderSmart.map
+    if (leader?.map && leader.map !== character.map) return leaderMap
     return autoMap || character.map
   }
 

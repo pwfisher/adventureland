@@ -1,6 +1,9 @@
-//
-// Upgrader (merchant)
-//
+/**
+ * Upgrader
+ *
+ * @author Patrick Fisher <patrick@pwfisher.com>
+ * @see https://github.com/kaansoral/adventureland
+ */
 const autoExchange = true
 const autoItem = null // e.g. 'staff'
 const autoParty = false

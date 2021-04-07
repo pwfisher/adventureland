@@ -1,11 +1,10 @@
 (function(){
-  /*
+  /**
    * Leader
    *
    * @author Patrick Fisher <patrick@pwfisher.com>
    * @see https://github.com/kaansoral/adventureland
    */
-  // const TEMPORARILY_OUT_OF_SERVICE = false
   const meleeChar = ['warrior', 'rogue'].includes(character.ctype)
   
   //
@@ -14,8 +13,8 @@
   const autoAttack = true
   const autoDefend = true
   const autoKite = !meleeChar
-  const autoMap = 'arena'
-  const autoParty = false
+  const autoMap = '' // 'arena'
+  const autoParty = true
   const autoRespawn = true
   const autoRest = false
   const autoSquish = true
@@ -40,14 +39,14 @@
   // STATE
   //
   let kitingMob = null
-  let moveDirection = null // null | 'in' | 'out' | 'kite'
-  let whichMob = null
   let mobToAttack = null
+  let moveDirection = null // null | 'in' | 'out' | 'kite' | 'map'
+  let whichMob = null
 
   //
   // INIT
   //
-  set('config', { autoMap, leaderName })
+  set('follower-config', { autoMap, leaderName })
   if (autoParty) startFollowers()
 
   //
@@ -55,15 +54,24 @@
   //
   setInterval(tick, tickDelay)
   function tick() {
-    if (autoParty) partyUp()
+    if (character.rip) {
+      kitingMob = null
+      mobToAttack = null
+      moveDirection = null
+      whichMob = null
+      if (autoRespawn && character.rip) respawn()
+      return
+    }
+
     if (character.rip) {
       whichMob = null
       moveDirection = null
-      if (autoRespawn && character.rip) respawn()
+      if (autoRespawn) respawn()
       return
     }
     use_hp_or_mp()
     loot()
+    if (autoParty) partyUp()
   
     //
     // RADAR
@@ -72,7 +80,7 @@
     const lockMob = get_targeted_monster()
     const aggroMob = getNearestMonster({ target: character.name, min_att: 1 })
     // TODO partyMob, party member aggro
-    const meanMob = getNearestMonster({ mean: true, min_att: 1 })
+    const rageMob = getNearestMonster({ rage: true, min_att: 1 })
     const juicyMob = getNearestMonster({ is_juicy: true })
     const preyMob = getNearestMonster({ min_xp: preyXpMin, max_att: preyAtkMax })
     const squishyMob = getNearestMonster({ min_xp: 1, max_hp: character.attack * 0.95 }) // no negative xp (e.g. puppies)
@@ -114,7 +122,7 @@
       mobToAttack = null
     }
     // If no prey and autoFarm, smart_move to random new monster location on map
-  
+
     if (
       can_attack(mobToAttack) &&
       // ranged chars, don’t draw prey aggro in enemy range
@@ -122,13 +130,19 @@
     ) {
       attack(mobToAttack)
     }
-  
+
     //
     // MOVEMENT
     //
     if (kitingMob && !aggroMob) stopKiting()
-  
-    if ((kitingMob || autoKite) && aggroMob && radarRange(aggroMob) <= safeRangeFor(aggroMob)) kite(aggroMob)
+    if (!is_moving(character)) moveDirection = null
+
+    if (moveDirection = 'map') {}
+    else if (autoMap && character.map && targetMap && character.map !== targetMap) {
+      moveDirection = 'map'
+      smart_move(targetMap)
+    }
+    else if ((kitingMob || autoKite) && aggroMob && radarRange(aggroMob) <= safeRangeFor(aggroMob)) kite(aggroMob)
     else if (autoStalk && mobToAttack && whichMob !== 'squishy') {
       if (is_moving(character)) {
         if (
@@ -140,7 +154,7 @@
         }
       } else { // not moving
         if (radarRange(mobToAttack) > character.range) moveToward(mobToAttack, rangeChunk)
-        else if (meanMob && radarRange(meanMob) <= safeRangeFor(meanMob)) moveToward(meanMob, -rangeChunk)
+        else if (rageMob && radarRange(rageMob) <= safeRangeFor(rageMob)) moveToward(rageMob, -rangeChunk)
         else if (autoKite && radarRange(mobToAttack) <= safeRangeFor(mobToAttack)) moveToward(mobToAttack, -rangeChunk)
         else moveDirection = null
       }
@@ -150,8 +164,8 @@
     // UPDATE UI
     //
     const uiRange = radarRange(aggroMob) ? Math.round(radarRange(aggroMob)) : uiBlank
-    const uiWhich = whichMob?.slice(0, 4) || uiBlank
-    const uiDir = kitingMob ? 'kite' : (moveDirection ? moveDirection : uiBlank)
+    const uiWhich = whichMob?.slice(0, 5) || uiBlank
+    const uiDir = kitingMob ? 'kite' : moveDirection ? moveDirection : uiBlank
     set_message(`${uiRange} · ${uiWhich} · ${uiDir}`)
 
     //
@@ -210,7 +224,7 @@
     if (args.path_check && !can_move_to(mob)) return false
     return true
   })
-  
+
   // Case: froggie over tortoise
   // -- choose juiciest prey closer than (character.range + character.speed * 0.3)
   // -- i.e. I will wait 30% of a step for a juicier target
@@ -262,28 +276,25 @@
   //
   // Hooks
   //
-  
   on_party_invite = name => {
     if (characterNames.includes(name)) accept_party_invite(name)
   }
-  
-})() // with immediately invoked anonymous function wrapper, editor can highlight dead code.
 
-// override game `set` to strip circular references
-window.set = (key, value) => {
-	try {
-		window.localStorage.setItem(
-      `cstore_` + key,
-      JSON.stringify(value, (k, v) => {
-        if (k[0] === '_') return null
-        return ['children','parent','scope'].includes(k) ? null : v
-      })
-    )
-		return true
-	} catch (e) {
-		game_log(`set() call failed for: ${key}, reason: ${e}`)
-		return false
-	}
-}
-
+  // override game `set` to strip circular references
+  window.set = (key, value) => {
+    try {
+      window.localStorage.setItem(
+        `cstore_${key}`,
+        JSON.stringify(value, (k, v) => {
+          if (k[0] === '_') return null
+          return ['children','parent','scope'].includes(k) ? null : v
+        })
+      )
+      return true
+    } catch (e) {
+      game_log(`set() call failed for: ${key}, reason: ${e}`)
+      return false
+    }
+  }
+})()
 // end leader.js
