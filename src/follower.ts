@@ -6,7 +6,7 @@
    * @see https://github.com/kaansoral/adventureland
    */
   const meleeChar = ['warrior', 'rogue'].includes(character.ctype)
-  const closest = (x, o) => o.range < x.range ? o : x
+  const closest = (x, o) => o.range < x.range ? o : x // deprecated, renamed minRange
 
   //
   // CONFIG
@@ -20,8 +20,8 @@
   const autoRespawn = true
   const autoSquish = true
   const autoStalk = true
-  const characterNames = get('follower-config')?.characterNames || []
-  const leaderName = get('follower-config')?.leaderName
+  const characterKeys = get('follower-config')?.characterKeys || []
+  const leaderKey = get('follower-config')?.leaderKey
   const rangeChunk = character.speed
   const rangeFollow = 20
   const rangeRadar = 2000
@@ -30,7 +30,7 @@
   const uiBlank = '--'
 
   // computed config (oxymoron?)
-  const friendNames = characterNames.filter(x => x !== character.name)
+  const friendNames = characterKeys.filter(x => x !== character.id)
 
   //
   // STATE
@@ -60,14 +60,14 @@
     }
     use_hp_or_mp()
     loot()
-    accept_magiport(leaderName)
+    accept_magiport(leaderKey)
 
     //
     // RADAR
     //
     updateRadar()
     const radarMobs = {
-      aggro: getNearestMonster({ target: character.name, min_att: 1 }),
+      aggro: getNearestMonster({ target: character.id, min_att: 1 }),
       hostile: getNearestHostile(),
       juicy: getNearestMonster({ is_juicy: true }),
       leader: leaderMob,
@@ -157,8 +157,7 @@
     //
     const uiRange = radarRange(mobToAttack) ? Math.round(radarRange(mobToAttack)) : uiBlank
     const uiWhich = whichMob?.slice(0, 5) || uiBlank
-    const uiDir = kitingMob ? 'kite' : moveDirection ? moveDirection : uiBlank
-    set_message(`${uiRange} · ${uiWhich} · ${uiDir}`)
+    const uiDir = kitingMob ? 'kite' : (moveDirection ? moveDirection : uiBlank)    set_message(`${uiRange} · ${uiWhich} · ${uiDir}`)
   }
 
   //
@@ -208,7 +207,7 @@
     if (args.max_att && mob.attack > args.max_att) return false
     if (args.max_hp && mob.hp > args.max_hp) return false
     if (args.target && mob.target !== args.target) return false
-    if (args.no_target && mob.target && mob.target !== character.name) return false
+    if (args.no_target && mob.target && mob.target !== character.id) return false
     if (args.path_check && !can_move_to(mob)) return false
     return true
   })
@@ -229,7 +228,7 @@
   }
 
   const safeRangeFor = mob => {
-    if (mob.attack === 0 || mob.target && mob.target !== character.name) return 0
+    if (mob.attack === 0 || mob.target && mob.target !== character.id) return 0
     return mob.range * 1.3 + 0.5 * mob.speed
   }
 
@@ -244,8 +243,8 @@
   // Hooks
   //
 
-  on_party_invite = name => {
-    if (name === leaderName) accept_party_invite(name)
+  on_party_invite = key => {
+    if (name === leaderKey) accept_party_invite(name)
   }
 
 })()

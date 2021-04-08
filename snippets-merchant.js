@@ -13,10 +13,10 @@ const exchangeOnLoop = () => {
 }
 
 // Bank inventory in packs "items0", "items1", etc. Wrapping some game functions for friendlier argument names.
-const getPackWithSpace = () => ['items0', 'items1'].find(packId => character.bank[packId].filter(o => o === null).length)
+const getPackWithSpace = () => ['items0', 'items1'].find(packKey => character.bank[packKey].filter(o => o === null).length)
 const bankStoreAll = () => character.items.forEach((o, i) => {
-  const packId = getPackWithSpace()
-  if (o && packId) bank_store(i, packId)
+  const packKey = getPackWithSpace()
+  if (o && packKey) bank_store(i, packKey)
 })
 const bankWithdrawAll = () => bank_withdraw(character.bank.gold)
 const closeStand = close_stand
@@ -32,9 +32,9 @@ const sellTrash = () => character.items.forEach((o, i) => { if (isTrash(o)) sell
 
 const bankRetrieveItems = (types) => {
   (Array.isArray(types) ? types : [types]).forEach(type => {
-    ['items0', 'items1'].forEach(packId => {
-      character.bank[packId].forEach((o, slot) => {
-        if (o?.name === type) bank_retrieve(packId, slot)
+    ['items0', 'items1'].forEach(packKey => {
+      character.bank[packKey].forEach((o, slot) => {
+        if (o?.name === type) bank_retrieve(packKey, slot)
       })
     })
   })
@@ -56,11 +56,11 @@ const numOpenSlots = () => character.items.filter(o => o === null).length
 
 const bankRetrieve = ({ type, level }) => {
   if (!character.bank) return
-  ['items0', 'items1'].forEach(packId => {
-    character.bank[packId].forEach((o, slot) => {
+  ['items0', 'items1'].forEach(packKey => {
+    character.bank[packKey].forEach((o, slot) => {
       if (o?.name !== type) return
       if (level !== undefined && o?.level !== level) return
-      bank_retrieve(packId, slot)
+      bank_retrieve(packKey, slot)
     })
   })
 }
@@ -70,8 +70,8 @@ const bankStore = ({ type, level }) => {
   character.items.forEach((o, slot) => {
     if (o?.name !== type) return
     if (level !== undefined && o?.level !== level) return
-    const packId = getPackWithSpace()
-    if (packId) bank_store(slot, packId)
+    const packKey = getPackWithSpace()
+    if (packKey) bank_store(slot, packKey)
   })
 }
 

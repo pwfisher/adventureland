@@ -40,7 +40,7 @@ function tick() {
   //
   updateRadar()
   const lockMob = get_targeted_monster()
-  const aggroMob = getNearestMonster({ target: character.name, min_att: 1 })
+  const aggroMob = getNearestMonster({ target: character.id, min_att: 1 })
   const nearMob = getNearestMonster()
 
   //
@@ -126,7 +126,7 @@ const getRadarPings = (args = {}) => radar.filter(({ mob }) => {
   if (args.max_att && mob.attack > args.max_att) return false
   if (args.max_hp && mob.hp > args.max_hp) return false
   if (args.target && mob.target !== args.target) return false
-  if (args.no_target && mob.target && mob.target !== character.name) return false
+  if (args.no_target && mob.target && mob.target !== character.id) return false
   if (args.path_check && !can_move_to(mob)) return false
   return true
 })
@@ -144,8 +144,8 @@ const moveToward = (point, distance) => {
 // Hooks
 //
 
-on_party_invite = name => {
-  if (characterNames.includes(name)) accept_party_invite(name)
+on_party_invite = key => {
+  if (characterKeys.includes(key)) accept_party_invite(key)
 }
 
 })() // with immediately invoked anonymous function wrapper, editor can highlight dead code.

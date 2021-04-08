@@ -11,9 +11,13 @@
   //
   const autoAttack = true
   const autoDefend = true
+  const autoLoot = true
+  const autoPotion = true
   const autoRespawn = true
   const autoStalk = true
+  const characterKeys = ['Binger', 'Dinger', 'Finger', 'Zinger']
   const rangeChunk = character.speed
+  const rangeRadar = 2000
   const rangeStalk = [character.range * 0.8, character.range]
   const tickDelay = 250
   const uiBlank = '--'
@@ -23,7 +27,15 @@
   //
   let mobToAttack = null
   let moveDirection = null // null | 'in' | 'out'
+  let radar = [] // [{ mob: Entity, range: Number }]
   let whichMob = null
+
+  const resetState = () => {
+    mobToAttack = null
+    moveDirection = null
+    radar = []
+    whichMob = null
+  }
 
   //
   // TICK
@@ -31,26 +43,18 @@
   setInterval(tick, tickDelay)
   function tick() {
     if (character.rip) {
-      mobToAttack = null
-      moveDirection = null
-      whichMob = null
       if (autoRespawn) respawn()
-      return
+      return resetState()
     }
-    use_hp_or_mp()
-    loot()
-    accept_magiport(leaderName)
-    if (autoRespawn && character.rip) respawn()
-    if (character.rip) return
-    use_hp_or_mp()
-    loot()
+    if (autoLoot) loot()
+    if (autoPotion) use_hp_or_mp()
 
     //
     // RADAR
     //
     updateRadar()
     const lockMob = get_targeted_monster()
-    const aggroMob = getNearestMonster({ target: character.name, min_att: 1 })
+    const aggroMob = getNearestMonster({ target: character.id, min_att: 1 })
     const nearMob = getNearestMonster()
 
     //
@@ -98,15 +102,14 @@
     //
     const uiRange = radarRange(aggroMob) ? Math.round(radarRange(aggroMob)) : uiBlank
     const uiWhich = 'lock'
-    const uiDir = moveDirection ? moveDirection : uiBlank
-    set_message(`${uiRange} · ${uiWhich} · ${uiDir}`)
+    const uiDir = moveDirection || uiBlank
+    setMessage(`${uiRange} ${uiWhich} ${uiDir}`)
   }
 
   //
   // FUNCTIONS
   //
   // "radar" caches "radar ping" (mob, distance) pairs for performance
-  let radar = []
   const updateRadar = () => {
     radar = []
     for (id in parent.entities) {
@@ -136,7 +139,7 @@
     if (args.max_att && mob.attack > args.max_att) return false
     if (args.max_hp && mob.hp > args.max_hp) return false
     if (args.target && mob.target !== args.target) return false
-    if (args.no_target && mob.target && mob.target !== character.name) return false
+    if (args.no_target && mob.target && mob.target !== character.id) return false
     if (args.path_check && !can_move_to(mob)) return false
     return true
   })
@@ -151,12 +154,10 @@
   }
 
   //
-  // Hooks
+  // HOOKS
   //
-
-  on_party_invite = name => {
-    if (characterNames.includes(name)) accept_party_invite(name)
+  on_party_invite = key => {
+    if (characterKeys.includes(key)) accept_party_invite(key)
   }
-
-})() // with immediately invoked anonymous function wrapper, editor can highlight dead code.
+})()
 // end attacker.js

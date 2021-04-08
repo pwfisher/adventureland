@@ -6,7 +6,7 @@ const autoItem = null // e.g. 'staff'
 const autoParty = false
 const autoStand = true
 const autoUpgrade = true
-const characterNames = ['Binger', 'Finger', 'Zinger']
+const characterKeys = ['Binger', 'Finger', 'Zinger']
 
 //
 // Startup
@@ -45,7 +45,7 @@ function doAutoStand() {
 
 function partyUp() {
   const partyNames = Object.keys(get_party())
-  for (const name of characterNames) {
+  for (const name of characterKeys) {
     if (!partyNames.includes(name)) send_party_invite(name)
   }
 }
@@ -53,6 +53,6 @@ function partyUp() {
 //
 // Hooks
 //
-on_party_invite = name => {
-  if ([characterNames].includes(name)) accept_party_invite(name)
+on_party_invite = key => {
+  if ([characterKeys].includes(name)) accept_party_invite(name)
 }

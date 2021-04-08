@@ -11,7 +11,7 @@ character.items.filter(Boolean).forEach((_item, slot) => {
 
 // Unreliable, because get_party() data goes stale. But simple and often useful.
 // -- Better to use local storage to pass data between party members.
-smart_move(get_party()[leaderName])
+smart_move(get_party()[leaderKey])
 
 smart_move('town', () => parent.socket.emit('interaction', { type: 'newyear_tree' }))
 
@@ -49,7 +49,7 @@ function rubyCleanup() { // h/t riverdusty, untested
   })
 }
 
-const smartFollow = () => smart_move(get_party()[leaderName])
+const smartFollow = () => smart_move(get_party()[leaderKey])
 
 // upgradeItems
 const maxUpgradeLevel = 7
