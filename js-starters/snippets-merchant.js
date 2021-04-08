@@ -58,8 +58,11 @@
     })
   })
 
-  const bankRetrieveCompoundables = () => bankPackKeys.forEach(x => bankPack(x).forEach(o => {
-    if (isCompoundableType(o?.name) && bankCount(o) >= 3) bankRetrieveCount(o, 3)
+  const bankRetrieveCompoundables = () => bankPackKeys.some(x => bankPack(x).some(o => {
+    if (isCompoundableType(o?.name) && bankCount(o) >= 3) {
+      bankRetrieveCount(o, 3)
+      return true
+    }
   }))
 
   const bankStore = ({ name, type, level }) => {
@@ -120,10 +123,13 @@
   console.log('Executing snippets-merch.js')
   //
   // ...your code here
+  //
   bankRetrieveCompoundables()
-  goJustOutsideBank(compoundAny)
+  // goJustOutsideBank(compoundAny)
+  //
   // bank_deposit(character.gold)
   // bankStoreAll()
-  // for (let i = 0; i<9; i++) bankRetrieve({ type: 'egg' + i })
+  // bankWithdrawAll()
+  // for (let i = 0; i < 9; i++) bankRetrieve({ type: 'egg' + i })
   //
 })()

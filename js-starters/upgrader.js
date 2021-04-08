@@ -12,7 +12,6 @@
   const autoCompound = true
   const autoCompoundLevelMax = 3
   const autoExchange = true
-  const autoExchangeSlot = 0
   const autoLoot = true
   const autoParty = false
   const autoPotion = true
@@ -21,7 +20,6 @@
   const autoUpgrade = true
   const autoUpgradeBuyKey = '' // item key, e.g. 'staff'
   const autoUpgradeMaxScrollLevel = 0
-  const autoUpgradeSlot = 0
   const bankPackKeys = ['items0', 'items1']
   const characterKeys = ['Binger', 'Dinger', 'Finger', 'Zinger']
   const tickDelay = 250
@@ -41,12 +39,13 @@
   // LOOP
   //
   setInterval(() => {
+    const item0 = character.items[0]
     if (character.rip) {
       if (autoRespawn) respawn()
       return resetState()
     }
     if (autoCompound) compoundAny()
-    if (autoExchange && !is_on_cooldown('exchange') && isExchangeableType(character.items[autoExchangeSlot]?.name)) exchange(autoExchangeSlot)
+    if (autoExchange && !is_on_cooldown('exchange') && isExchangeableType(item0?.name)) exchange(0)
     if (autoLoot) loot()
     if (autoParty) partyUp()
     if (autoPotion) use_hp_or_mp()
@@ -54,12 +53,10 @@
       if (is_moving(character) && character.stand) close_stand()
       else if (!is_moving(character) && !character.stand) open_stand()
     }
-    if (autoUpgrade && !is_on_cooldown('upgrade') && isUpgradeableType(character.items[autoUpgradeSlot]?.name)) {
-      if (character.items[autoUpgradeSlot]?.level < 7) {
-        for (let i = 0; i < autoUpgradeMaxScrollLevel; i++) {
-          const scrollSlot = itemSlot({ type: 'scroll' + i })
-          if (scrollSlot) upgrade(autoUpgradeSlot, scrollSlot)
-        }
+    if (autoUpgrade && !is_on_cooldown('upgrade') && isUpgradeableType(item0?.name)) {
+      if (item_grade(item0) <= autoUpgradeMaxScrollLevel) {
+        const scrollSlot = itemSlot({ type: 'scroll' + item_grade(item0) })
+        if (scrollSlot) upgrade(0, scrollSlot)
       }
       else if (autoUpgradeBuyKey && !character.items[0]) buy(autoUpgradeBuyKey)
     }
@@ -93,9 +90,9 @@
     if (scrollSlot) compound(slots[0], slots[1], slots[2], scrollSlot)
   })
 
-  const isCompoundableType = type => type && G.items[type].compound
-  const isExchangeableType = type => type && G.items[type]?.e
-  const isUpgradeableType = type => type && G.items[type]?.upgrade
+  const isCompoundableType = type => !!(type && G.items[type].compound)
+  const isExchangeableType = type => !!(type && G.items[type]?.e)
+  const isUpgradeableType = type => !!(type && G.items[type]?.upgrade)
 
   // name or type is required (no filter just by level). Support name or type due to handle data structure inconsistency.
   const itemFilter = arg => o => o?.name === (arg.name || arg.type) && (arg.level === undefined || o.level === arg.level)
