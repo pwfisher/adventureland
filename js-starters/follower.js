@@ -15,23 +15,34 @@
   const autoFollow = true
   const autoKite = !isMeleeType(character)
   const autoLoot = true
+  const autoMelee = isMeleeType(character)
   const autoPotion = true
   const autoRespawn = true
   const autoSquish = true
   const autoStalk = true
   const characterKeys = ['Binger', 'Dinger', 'Finger', 'Zinger']
   const rangeChunk = character.speed
-  const rangeFollow = 20
+  const rangeFollow = 10
   const rangeRadar = 2000
   const rangeStalk = [character.range * 0.8, character.range]
   const tickDelay = 250
   const uiBlank = '--'
+
+  const {
+    autoMap,
+    autoMob,
+    autoHostile,
+    autoPriority,
+    priorityMobTypes,
+  }= get('follower-config') || {}
 
   //
   // STATE
   //
   let kitingMob = null
   let leaderKey
+  let leaderPlayer
+  let mobs = {}
   let mobToAttack = null
   let moveDirection = null // null | 'in' | 'out' | 'map'
   let radar = [] // [{ mob: Entity, range: Number }]
@@ -39,6 +50,7 @@
 
   const resetState = () => {
     kitingMob = null
+    mobs = {}
     mobToAttack = null
     moveDirection = null
     radar = []
@@ -51,7 +63,7 @@
   setInterval(tick, tickDelay)
   function tick() {
     ({ character: leader, smart: leaderSmart } = get('leader-state') ?? {})
-    leaderKey = leader?.id
+    ;({ id: leaderKey, map: leaderMap } = (leader ?? { id: '', map: '' }))
 
     if (character.rip) {
       if (autoRespawn) respawn()
@@ -64,74 +76,85 @@
     // RADAR
     //
     updateRadar()
-    const lockMob = get_targeted_monster()
     const aggroMob = getNearestMonster({ target: character.id, min_att: 1 })
-    const rageMob = getNearestMonster({ rage: true, min_att: 1 })
+    const hostileMob = getNearestHostile()
+    const lockMob = get_targeted_monster()
     const partyMob = getNearestMonster({ target: leaderKey }) // should include any party member targeted
-    const squishyMob = getNearestMonster({ min_xp: 1, max_hp: character.attack * 0.95 }) // exclude negative xp (puppies)
-    const leadPlayer = get_player(leaderKey)
+    const priorityMob = getPriorityMob()
+    const squishyMob = getNearestMonster({ min_xp: 1, max_hp: character.attack * 0.95 })
+    const willAggroMob = getNearestMonster({ aggro: true, min_att: 1 })
+    mobs = {
+      aggroMob,
+      hostileMob,
+      kitingMob,
+      lockMob,
+      partyMob,
+      priorityMob,
+      squishyMob,
+      willAggroMob,
+    }
+    if (!aggroMob) kitingMob = null
+    const canSquish = autoSquish && squishyMob && is_in_range(squishyMob, 'attack') && !character.q.attack
 
     //
     // ATTACK
     //
-    if (
-      iAmTargetOf(lockMob) &&
-      (autoAttack || autoDefend) &&
-      (autoStalk || radarRange(lockMob) < character.range)
-    ) {
+    if (priorityMob && autoPriority)
+      whichMob = 'priority'
+    else if (hostileMob && autoHostile)
+      whichMob = 'hostile'
+    else if (lockMob?.visible && iAmTargetOf(lockMob) && (autoAttack || autoDefend) && (autoStalk || autoKite || radarRange(lockMob) < character.range))
       whichMob = 'lock'
-      mobToAttack = lockMob
-    } else if (aggroMob && autoDefend) {
+    else if (aggroMob && autoDefend)
       whichMob = 'aggro'
-      mobToAttack = aggroMob
-    } else if (partyMob && autoAttack) {
+    else if (partyMob && autoAttack)
       whichMob = 'party'
-      mobToAttack = partyMob
-    } else if (squishyMob && autoSquish && is_in_range(squishyMob, 'attack')) {
-      whichMob = 'squishy'
-      mobToAttack = squishyMob
-    } else {
-      whichMob = null
-      mobToAttack = null
-    }
+    else
+      whichMob = canSquish ? 'squishy' : null
+    mobToAttack = mobs[`${whichMob}Mob`]
 
-    if (can_attack(mobToAttack)) attack(mobToAttack)
+    if (
+      can_attack(mobToAttack) &&
+      (
+        autoMelee ||
+        ['priority', 'hostile', 'lock', 'aggro', 'squishy'].includes(whichMob) ||
+        radarRange(mobToAttack) > safeRangeFor(mobToAttack)
+      )
+    ) {
+      attack(mobToAttack)
+    }
 
     //
     // MOVEMENT
     //
-    const leadGoingTo = { x: leadPlayer?.going_x, y: leadPlayer?.going_y }
-    const rangeLeader = leadPlayer && distance(character, leadGoingTo)
-
-    if (kitingMob && !aggroMob) stopKiting()
-
-    if ((kitingMob || autoKite) && aggroMob && radarRange(aggroMob) <= safeRangeFor(aggroMob)) kite(aggroMob)
-    else if (rageMob && radarRange(rageMob) <= safeRangeFor(rageMob)) moveToward(rageMob, -rangeChunk)
+    if (autoMap && character.map !== autoMap)
+      dropItAndGoTo(autoMap)
+    else if (autoMob && !getNearestMonster({ type: autoMob }))
+      dropItAndGoTo(autoMob)
+    else if (aggroMob && (kitingMob || autoKite) && radarRange(aggroMob) <= safeRangeFor(aggroMob))
+      kite(aggroMob)
+    else if (willAggroMob && radarRange(willAggroMob) <= safeRangeFor(willAggroMob))
+      moveToward(willAggroMob, -rangeChunk)
     else if (autoStalk && mobToAttack && whichMob !== 'squishy') {
-      if (is_moving(character)) {
-        if (
-          (moveDirection === 'in' && radarRange(mobToAttack) <= Math.max(rangeStalk[1], safeRangeFor(mobToAttack))) ||
-          (moveDirection === 'out' && radarRange(mobToAttack) >= Math.max(rangeStalk[0], safeRangeFor(mobToAttack)))
-        ) {
-          stop() // in goldilocks zone
-          moveDirection = null
-        }
-      } else { // not moving
-        if (radarRange(mobToAttack) > character.range) moveToward(mobToAttack, rangeChunk)
-        else if (autoKite && radarRange(mobToAttack) <= safeRangeFor(mobToAttack)) moveToward(mobToAttack, -rangeChunk)
-        else moveDirection = null
-      }
+      if (
+        moveDirection === 'in' && radarRange(mobToAttack) <= Math.max(rangeStalk[1], safeRangeFor(mobToAttack)) ||
+        moveDirection === 'out' && radarRange(mobToAttack) >= Math.max(rangeStalk[0], safeRangeFor(mobToAttack))
+      )
+        followOrStop() // in goldilocks zone
+      else if (autoKite && radarRange(mobToAttack) <= safeRangeFor(mobToAttack))
+        moveToward(mobToAttack, -rangeChunk)
+      else if (radarRange(mobToAttack) > character.range)
+        moveToward(mobToAttack, rangeChunk)
+      else
+        followOrStop()
     }
-    else if (autoFollow && !is_moving(character)) {
-      if (!leadPlayer) travelTo(leaderKey)
-      else if (rangeLeader > rangeFollow) moveToward(leadGoingTo, Math.min(rangeChunk, rangeLeader))
-      else moveDirection = null
-    }
+    else
+      followOrStop()
 
     //
     // UPDATE UI
     //
-    const uiRange = radarRange(aggroMob) ? Math.round(radarRange(aggroMob)) : uiBlank
+    const uiRange = radarRange(mobToAttack) ? Math.round(radarRange(mobToAttack)) : uiBlank
     const uiWhich = whichMob?.slice(0, 5) || uiBlank
     const uiDir = kitingMob ? 'kite' : moveDirection || uiBlank
     set_message(`${uiRange} ${uiWhich} ${uiDir}`)
@@ -140,18 +163,33 @@
   //
   // FUNCTIONS
   //
+  const followOrStop = () => {
+    const leadGoingTo = { x: leader?.going_x, y: leader?.going_y }
+    const rangeLeader = leader && distance(character, leadGoingTo)
+    if (autoFollow && leader?.map && leader?.map !== character.map) {
+      if (!smart.moving) smart_move(leaderPlayer)
+      // else continue smart moving
+    }
+    else if (autoFollow && rangeLeader > rangeFollow)
+      moveToward(leader, Math.min(rangeChunk, rangeLeader))
+    else {
+      stop()
+      moveDirection = null
+    }
+  }
+
+  const dropItAndGoTo = args => {
+    resetState()
+    if (!smart.moving) smart_move(args)
+    // else continue smart moving
+  }
+
   const kite = mob => {
     kitingMob = mob
     moveToward(mob, -rangeChunk)
   }
 
-  const stopKiting = () => {
-    stop()
-    kitingMob = null
-    moveDirection = null
-  }
-
-  // "radar" caches "radar ping" (mob, distance) pairs for performance
+  // "radar" caches "radar pings" [{ mob, range }] for performance
   const updateRadar = () => {
     radar = []
     for (id in parent.entities) {
@@ -163,40 +201,44 @@
     }
   }
   const radarRange = mob => radar.find(o => o.mob === mob)?.range
-
+  const minRange = (x, o) => o.range < x.range ? o : x
+  const getClosestRadarPing = pings => pings.reduce(minRange, { range: Infinity })?.mob
   const getNearestMonster = args => getClosestRadarPing(getRadarPings(args))
 
-  const getClosestRadarPing = pings => pings.reduce(
-    (x, o) => o.range < x.range ? o : x,
-    { range: Infinity }
-  )?.mob
-
   const getRadarPings = (args = {}) => radar.filter(({ mob }) => {
-    if (mob.name === 'Target Automatron') return false
+    if (mob.name === 'Target Automatron') return
     if (mob.map !== character.map) return
-    if (args.is_juicy && mob.xp > mob.hp * 1.5) return false
-    if (args.mtype && mob.mtype !== args.mtype) return false
-    if (args.min_xp && mob.xp < args.min_xp) return false
-    if (args.min_att && mob.attack < args.min_att) return false
-    if (args.max_att && mob.attack > args.max_att) return false
-    if (args.max_hp && mob.hp > args.max_hp) return false
-    if (args.target && mob.target !== args.target) return false
-    if (args.no_target && mob.target && mob.target !== character.id) return false
-    if (args.path_check && !can_move_to(mob)) return false
+    if (args.aggro && mob.aggro <= 0.1) return
+    if (args.is_juicy && mob.xp > mob.hp * 1.5) return
+    if (args.mtype && mob.mtype !== args.mtype) return
+    if (args.min_xp && mob.xp < args.min_xp) return
+    if (args.min_att && mob.attack < args.min_att) return
+    if (args.max_att && mob.attack > args.max_att) return
+    if (args.max_hp && mob.hp > args.max_hp) return
+    if (args.target && mob.target !== args.target) return
+    if (args.no_target && mob.target && mob.target !== character.id) return
+    if (args.path_check && !can_move_to(mob)) return
     return true
   })
+
+  const getPriorityMob = () => priorityMobTypes
+    .map(type => getRadarPings({ type }))
+    .reduce(minRange, { range: Infinity })?.mob
+
+  const getNearestHostile = args => null // todo
 
   const iAmTargetOf = mob => mob?.target === character.id
   const isSquishy = mob => mob?.hp < character.attack * 0.95
 
   const moveToward = (mob, distance) => {
-    if (!can_move_to(mob.x, mob.y)) return smart_move(mob)
-    const dx = mob.x - character.x
-    const dy = mob.y - character.y
-    const magnitude = Math.sqrt(dx * dx + dy * dy)
-    const safeDistance = radarRange(mob) ? Math.min(distance, radarRange(mob) - safeRangeFor(mob) - character.speed) : distance
-    console.log({ radarRange: radarRange(mob), safeDistance, mobSpeed: mob.speed, mySpeed: character.speed, myRange: character.range, mobRange: mob.range })
-    move(character.x + (dx / magnitude) * distance, character.y + (dy / magnitude) * safeDistance)
+    if (mob.map !== character.map) return
+    if (!can_move_to(mob.x, mob.y) && !smart.moving) return smart_move(mob)
+    const [x, y] = unitVector(character, mob)
+    const safeDistance = radarRange(mob)
+      ? Math.min(distance, radarRange(mob) - safeRangeFor(mob) - character.speed)
+      : distance
+    // smart_move({ x: character.x + x * safeDistance, y: character.y + y * safeDistance })
+    move(character.x + x * safeDistance, character.y + y * safeDistance)
     moveDirection = distance > 0 ? 'in' : 'out'
   }
 
@@ -208,6 +250,13 @@
   const travelTo = name => {
     const o = get_party()[name]
     if (o && (o.in === o.map || o.in === character.in)) smart_move(o)
+  }
+
+  function unitVector(from, to) {
+    const dx = to.x - from.x
+    const dy = to.y - from.y
+    const magnitude = Math.sqrt(dx * dx + dy * dy)
+    return [dx / magnitude, dy / magnitude]
   }
 
   //

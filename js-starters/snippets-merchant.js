@@ -9,13 +9,17 @@
   //
   const autoCompoundLevelMax = 3
   const bankPackKeys = Object.keys(bank_packs).filter(x => bank_packs[x][0] === 'bank')
+  const packSize = 42
   const trashItemTypes = ['cclaw', 'coat', 'gloves', 'helmet', 'pants', 'shoes']
 
   const arrayOf = x => Array.isArray(x) ? x : [x]
   const bankPack = x => (character.bank || {})[x] ?? []
+  const isNull = x => x === null
+  const isNotNull = x => x !== null
 
   // Bank inventory in packs "items0", "items1", etc. Wrapping some game functions for friendlier argument names.
-  const getPackWithSpace = () => bankPackKeys.find(x => bankPack(x).filter(o => o === null).length)
+  const openSlotInBankPack = key => bankPack(key).find(isNull)
+  const getPackWithSpace = () => bankPackKeys.find(openSlotInBankPack)
   const bankWithdrawAll = () => bank_withdraw(character.bank.gold)
   const sellAll = () => character.items.forEach((o, slot) => { if (o) sell(slot, o.q || 1) })
 
@@ -65,6 +69,44 @@
     }
   }))
 
+  const bankStoreItem = (item, slot) => { // something's broken
+    if (!item) return
+    let stacked = false
+    if (item.q) { // try to stack it
+      bankPackKeys.some(packKey => {
+        if (!character.bank[packKey]) return
+        const packSlot = itemSlot(item, bankPack(packKey))
+        if (packSlot && can_stack(item, bankPack(packKey)[packSlot])) {
+          console.log(`stacking ${item.name}`)
+          let openPackSlot = openSlotInBankPack(packKey)
+          console.log(`openSlotInBankPack('${packKey}')`, openPackSlot)
+          if (openPackSlot) {
+            bank_store(slot, packKey, openPackSlot)
+            parent.socket.emit('bank', { operation: 'move', pack: packKey, a: openPackSlot, b: packSlot })
+            stacked = true
+            return true
+          } // else
+          const openSlot = openSlots()[0]
+          if (openSlot) {
+            console.log(`can’t stack in full pack, but can swap to open slot`)
+            const swapSlot = (packSlot + 1) % packSize
+            bank_retrieve(packKey, swapSlot, openSlot)
+            bank_store(slot, packKey, swapSlot)
+            parent.socket.emit('bank', { operation: 'move', pack: packKey, a: swapSlot, b: packSlot })
+            bank_store(openSlot, packKey, swapSlot)
+            stacked = true
+            return true
+          } else {
+            game_log('stack failed: need open slot in bank or inventory')
+          }
+        }
+      })
+    }
+    if (!stacked) {
+      const packKey = getPackWithSpace()
+      if (packKey) bank_store(slot, packKey)
+    }
+  }
   const bankStore = ({ name, type, level }) => {
     if (!character.bank) return
     character.items.forEach((o, slot) => {
@@ -74,26 +116,6 @@
     })
   }
   const bankStoreAll = () => character.items.forEach(bankStoreItem)
-  const bankStoreItem = (item, slot) => {
-    if (!item) return
-    let stacked = false
-    if (item.q) { // try to stack it
-      bankPackKeys.some(key => {
-        if (!character.bank[key]) return
-        const packSlot = itemSlot(item, character.bank[key])
-        if (packSlot && can_stack(item, character.bank[key][packSlot])) {
-          console.log('stacking')
-          bank_store(slot, key, packSlot)
-          stacked = true
-          return true
-        }
-      })
-    }
-    if (!stacked) {
-      const packKey = getPackWithSpace()
-      if (packKey) bank_store(slot, packKey)
-    }
-  }
 
   const goJustOutsideBank = cb => smart_move({ map: 'main', x: 168, y: -134 }, cb)
 
@@ -116,20 +138,20 @@
   const bankCount = item => bankPackKeys.map(x => itemCount(item, character.bank[x])).reduce((x, o) => x + o, 0)
   const itemCount = item => bagCount(item, character.items)
   const itemSlot = (o, bag) => itemSlots(o, bag)?.[0]
-  const itemSlots = (arg, bag = character.items) => bag.map((o, slot) => itemFilter(arg)(o) ? slot : null).filter(x => x !== null)
-
-  // const bankSlotCount =
+  const itemSlots = (arg, bag = character.items) => bag.map((o, slot) => itemFilter(arg)(o) ? slot : null).filter(isNotNull)
+  const openSlots = () => character.items.map((o, slot) => o ? null : slot).filter(isNotNull)
 
   console.log('Executing snippets-merch.js')
   //
   // ...your code here
   //
-  bankRetrieveCompoundables()
+  // bankRetrieveCompoundables()
   // goJustOutsideBank(compoundAny)
   //
   // bank_deposit(character.gold)
   // bankStoreAll()
-  // bankWithdrawAll()
+  bankStore({ name: 'whiteegg', q: 1 })
+  bankWithdrawAll()
   // for (let i = 0; i < 9; i++) bankRetrieve({ type: 'egg' + i })
   //
 })()

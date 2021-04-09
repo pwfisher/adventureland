@@ -32,3 +32,5 @@ function rubyCleanup() { // h/t riverdusty, untested
 }
 
 for (let i = 0; i<9; i++) bankRetrieve({ type: 'egg' + i })
+
+Object.keys(G.monsters).map(k => G.monsters[k].aggro)

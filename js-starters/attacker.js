@@ -100,16 +100,16 @@
     //
     // UPDATE UI
     //
-    const uiRange = radarRange(aggroMob) ? Math.round(radarRange(aggroMob)) : uiBlank
+    const uiRange = radarRange(mobToAttack) ? Math.round(radarRange(mobToAttack)) : uiBlank
     const uiWhich = 'lock'
     const uiDir = moveDirection || uiBlank
-    setMessage(`${uiRange} ${uiWhich} ${uiDir}`)
+    set_message(`${uiRange} ${uiWhich} ${uiDir}`)
   }
 
   //
   // FUNCTIONS
   //
-  // "radar" caches "radar ping" (mob, distance) pairs for performance
+  // "radar" caches "radar pings" [{ mob, range }] for performance
   const updateRadar = () => {
     radar = []
     for (id in parent.entities) {

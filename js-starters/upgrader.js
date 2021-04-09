@@ -15,10 +15,13 @@
   const autoLoot = true
   const autoParty = false
   const autoPotion = true
+  const autoSell = true
+  const autoSellTypes = ['helmet', 'shoes', 'gloves', 'pants', 'coat']
   const autoStand = true
   const autoTown = false
   const autoUpgrade = true
-  const autoUpgradeBuyKey = '' // item key, e.g. 'staff'
+  const autoUpgradeSwap = true
+  const autoUpgradeBuyType = '' // item key, e.g. 'staff'
   const autoUpgradeMaxScrollLevel = 0
   const bankPackKeys = ['items0', 'items1']
   const characterKeys = ['Binger', 'Dinger', 'Finger', 'Zinger']
@@ -49,17 +52,23 @@
     if (autoLoot) loot()
     if (autoParty) partyUp()
     if (autoPotion) use_hp_or_mp()
+    if (autoSell) character.items.forEach((item, slot) => {
+      if (autoSellTypes.includes(item?.name)) sell(slot)
+    })
     if (autoStand) {
       if (is_moving(character) && character.stand) close_stand()
       else if (!is_moving(character) && !character.stand) open_stand()
     }
-    if (autoUpgrade && !is_on_cooldown('upgrade') && isUpgradeableType(item0?.name)) {
-      if (item_grade(item0) <= autoUpgradeMaxScrollLevel) {
+    if (autoUpgrade && !is_on_cooldown('upgrade')) {
+      if (isAutoUpgradeableType(item0?.name)) {
         const scrollSlot = itemSlot({ type: 'scroll' + item_grade(item0) })
         if (scrollSlot) upgrade(0, scrollSlot)
       }
-      else if (autoUpgradeBuyKey && !character.items[0]) buy(autoUpgradeBuyKey)
+      else if (isUpgradeableType(item0?.name) && openSlots().length) swap(0, openSlots().pop())
+      else if (autoUpgradeSwap && autoUpgradeableSlot()) swap(0, autoUpgradeableSlot())
+      else if (autoUpgradeBuyType && !item0) buy(autoUpgradeBuyType)
     }
+    // todo stack bank items
 
     //
     // UPDATE UI
@@ -90,9 +99,13 @@
     if (scrollSlot) compound(slots[0], slots[1], slots[2], scrollSlot)
   })
 
+  const isNotNull = x => x !== null
+
   const isCompoundableType = type => !!(type && G.items[type].compound)
   const isExchangeableType = type => !!(type && G.items[type]?.e)
   const isUpgradeableType = type => !!(type && G.items[type]?.upgrade)
+  const isAutoUpgradeableType = type => isUpgradeableType(type) && item_grade({ name: type }) <= autoUpgradeMaxScrollLevel
+  const autoUpgradeableSlot = () => character.items.findIndex(o => isAutoUpgradeableType(o?.name))
 
   // name or type is required (no filter just by level). Support name or type due to handle data structure inconsistency.
   const itemFilter = arg => o => o?.name === (arg.name || arg.type) && (arg.level === undefined || o.level === arg.level)
@@ -100,7 +113,8 @@
   const bankCount = item => bankPackKeys.map(x => itemCount(item, character.bank[x])).reduce((x, o) => x + o, 0)
   const itemCount = item => bagCount(item, character.items)
   const itemSlot = o => itemSlots(o)?.[0]
-  const itemSlots = arg => character.items.map((o, slot) => itemFilter(arg)(o) ? slot : null).filter(x => x !== null)
+  const itemSlots = arg => character.items.map((o, slot) => itemFilter(arg)(o) ? slot : null).filter(isNotNull)
+  const openSlots = () => character.items.map((o, slot) => o ? null : slot).filter(isNotNull)
 
   //
   // Hooks
