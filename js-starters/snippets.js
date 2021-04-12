@@ -34,3 +34,24 @@ function rubyCleanup() { // h/t riverdusty, untested
 for (let i = 0; i<9; i++) bankRetrieve({ type: 'egg' + i })
 
 Object.keys(G.monsters).map(k => G.monsters[k].aggro)
+
+const unitVector = (from, to) => {
+  const dx = to.x - from.x
+  const dy = to.y - from.y
+  const magnitude = Math.sqrt(dx * dx + dy * dy)
+  return [dx / magnitude, dy / magnitude]
+}
+
+const moveToward = (mob, distance) => {
+  if (mob.map !== character.map) return
+  if (!can_move_to(mob)) return smart_move(mob)
+  const [x, y] = unitVector(character, mob)
+  move(character.x + x * distance, character.y + y * distance)
+}
+
+const moveClockwise = (mob, distance) => {
+  const [x, y] = unitVector(character, mob)
+  moveToward({ map: mob.map, x: character.real_x - y, y: character.real_y + x }, distance)
+}
+
+const cancelSmartMove = () => smart_move({ x: character.real_x, y: character.real_y })

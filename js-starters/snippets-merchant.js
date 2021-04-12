@@ -69,10 +69,10 @@
     }
   }))
 
-  const bankStoreItem = (item, slot) => { // something's broken
+  const bankStoreItem = (item, slot) => {
     if (!item) return
     let stacked = false
-    if (item.q) { // try to stack it
+    if (isStackableType(item.name)) {
       bankPackKeys.some(packKey => {
         if (!character.bank[packKey]) return
         const packSlot = itemSlot(item, bankPack(packKey))
@@ -87,7 +87,7 @@
             return true
           } // else
           const openSlot = openSlots()[0]
-          if (openSlot) {
+          if (openSlot > -1) {
             console.log(`can’t stack in full pack, but can swap to open slot`)
             const swapSlot = (packSlot + 1) % packSize
             bank_retrieve(packKey, swapSlot, openSlot)
@@ -119,17 +119,16 @@
 
   const goJustOutsideBank = cb => smart_move({ map: 'main', x: 168, y: -134 }, cb)
 
-  const compoundAny = () => character.items.forEach(item => {
+  const compoundAny = () => character.items.some(item => {
     if (character.q.compound || !isCompoundableType(item?.name) || itemCount(item) < 3 || item.level >= autoCompoundLevelMax) return
     const slots = itemSlots(item)
-    for (let i = 0; i < 4; i++) {
-      const scrollSlot = itemSlot({ type: 'cscroll' + i })
-      if (scrollSlot) compound(slots[0], slots[1], slots[2], scrollSlot)
-    }
+    const scrollSlot = itemSlot({ type: 'cscroll' + item_grade(item) })
+    if (scrollSlot) return compound(slots[0], slots[1], slots[2], scrollSlot)
   })
 
   const isCompoundableType = type => type && G.items[type].compound
   const isExchangeableType = type => type && G.items[type]?.e
+  const isStackableType = type => type && G.items[type]?.s
   const isUpgradeableType = type => type && G.items[type]?.upgrade
 
   // name or type is required (no filter just by level). Support name or type due to handle data structure inconsistency.
@@ -141,17 +140,19 @@
   const itemSlots = (arg, bag = character.items) => bag.map((o, slot) => itemFilter(arg)(o) ? slot : null).filter(isNotNull)
   const openSlots = () => character.items.map((o, slot) => o ? null : slot).filter(isNotNull)
 
-  console.log('Executing snippets-merch.js')
+  console.log('Executing snippets-merchant.js')
   //
   // ...your code here
   //
-  // bankRetrieveCompoundables()
-  // goJustOutsideBank(compoundAny)
+  // if (!character.map === 'bank') smart_move('bank')
+  bankStoreAll()
+  bankRetrieveCompoundables()
+  goJustOutsideBank(compoundAny)
   //
   // bank_deposit(character.gold)
-  // bankStoreAll()
-  bankStore({ name: 'whiteegg', q: 1 })
-  bankWithdrawAll()
+  // bankStore({ name: 'whiteegg', q: 1 })
+  // bankWithdrawAll()
   // for (let i = 0; i < 9; i++) bankRetrieve({ type: 'egg' + i })
   //
 })()
+// end snippets-merchant.js

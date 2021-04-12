@@ -7,24 +7,27 @@
    */
   const isMeleeType = character => ['warrior', 'rogue'].includes(character.ctype)
 
+  const manualMode = false
+
   //
   // CONFIG
   //
   const autoAttack = true
   const autoDefend = true
+  const autoAvoidWillAggro = !manualMode
   const autoHostile = false
   const autoKite = !isMeleeType(character)
   const autoLoot = true
-  const autoMap = 'arena' // 'arena'
+  const autoMap = 'cave'
   const autoMelee = isMeleeType(character)
-  const autoMob = '' // 'bat'
+  const autoMob = 'bat'
   const autoParty = true
   const autoPotion = true
   const autoPriority = true
   const autoRespawn = true
-  const autoRest = false
+  const autoRest = !manualMode
   const autoSquish = true
-  const autoStalk = true
+  const autoStalk = !manualMode
   const characterKeys = ['Binger', 'Dinger', 'Finger', 'Zinger']
   const codeFollower = 'Follower'
   const preyAtkMax = 1000
@@ -51,6 +54,7 @@
   //
   // STATE
   //
+  let hasMoved
   let kitingMob = null
   let mobs = {}
   let mobToAttack = null
@@ -78,7 +82,7 @@
   setInterval(tick, tickDelay)
   function tick() {
     const { character: characterLast } = get('leader-state') ?? {}
-    const hasMoved = character.real_x !== characterLast.real_x || character.real_y !== characterLast.real_y
+    hasMoved = character.real_x !== characterLast?.real_x || character.real_y !== characterLast?.real_y
 
     if (character.rip) {
       if (autoRespawn) respawn()
@@ -133,7 +137,7 @@
       whichMob = 'party'
     else if (smart.moving)
       whichMob = canSquish ? 'squishy' : null
-    else if (juicyMob && autoAttack && radarRange(juicyMob) < (character.range + character.speed))
+    else if (juicyMob && autoAttack && radarRange(juicyMob) < (character.range + character.speed) && (!autoRest || character.hp > character.max_hp * 0.9) && isSafePrey(juicyMob))
       whichMob = 'juicy'
     else if (preyMob && autoAttack && (!autoRest || character.hp > character.max_hp * 0.9) && isSafePrey(preyMob))
       whichMob = 'prey'
@@ -156,18 +160,21 @@
     // MOVEMENT
     //
     if (autoMap && character.map !== autoMap)
-      dropItAndGoTo(autoMap)
+      smartMove(autoMap)
     else if (autoMob && !getNearestMonster({ type: autoMob }))
-      dropItAndGoTo(autoMob)
-    else if (!smart.moving && moveDirection && !hasMoved) {
+      smartMove(autoMob)
+    else if (!smart.moving && moveDirection && !hasMoved && moveDirection !== 'escape') {
       game_log('we look stuck. escape!')
-      // todo magiport escape?
+      // todo magiport escape, past target, distance character.speed * 2
       const escapeMob = mobToAttack ?? willAggroMob ?? aggroMob
-      if (escapeMob) smartMoveToward(escapeMob, distance(character, escapeMob) + safeRangeFor(escapeMob) + character.speed)
+      if (escapeMob) {
+        moveDirection = 'escape'
+        smartMoveToward(escapeMob, distance(character, escapeMob) + safeRangeFor(escapeMob) + character.speed)
+      }
     }
     else if (aggroMob && (kitingMob || autoKite) && radarRange(aggroMob) <= safeRangeFor(aggroMob))
       kite(aggroMob)
-    else if (willAggroMob && radarRange(willAggroMob) <= safeRangeFor(willAggroMob))
+    else if (autoAvoidWillAggro && willAggroMob && radarRange(willAggroMob) <= safeRangeFor(willAggroMob))
       moveToward(willAggroMob, -rangeChunk)
     else if (autoStalk && mobToAttack && whichMob !== 'squishy') {
       if (
@@ -192,7 +199,7 @@
     //
     const uiRange = radarRange(mobToAttack) ? Math.round(radarRange(mobToAttack)) : uiBlank
     const uiWhich = whichMob?.slice(0, 5) || uiBlank
-    const uiDir = kitingMob ? 'kite' : moveDirection || uiBlank
+    const uiDir = smart.moving ? 'smart' : kitingMob ? 'kite' : moveDirection || uiBlank
     set_message(`${uiRange} ${uiWhich} ${uiDir}`)
     // set_message(`smart: ${smart.moving}`)
 
@@ -202,18 +209,15 @@
   //
   // FUNCTIONS
   //
-  const dropItAndGoTo = args => {
-    resetState()
-    if (!smart.moving) smart_move(args)
-  }
-
   const kite = mob => {
     kitingMob = mob
     moveToward(mob, -rangeChunk)
   }
 
   // const kiteCircles = [ // known circling locations
+  // todo add radius. see Cave
   //   { map: 'main', x: -367, y: 420 }, // training automaton area
+  //   { map: 'cave', x: , y:  }
   // ]
 
   // // if kiteCircle within range, move toward circle center
@@ -248,7 +252,7 @@
     if (mob.name === 'Target Automatron') return
     if (mob.map !== character.map) return
     if (args.aggro && mob.aggro <= 0.1) return
-    if (args.is_juicy && mob.xp > mob.hp * 1.5) return
+    if (args.is_juicy && mob.xp < mob.hp * 1.5) return
     if (args.mtype && mob.mtype !== args.mtype) return
     if (args.min_xp && mob.xp < args.min_xp) return
     if (args.min_att && mob.attack < args.min_att) return
@@ -285,7 +289,7 @@
 
   const moveToward = (mob, distance) => {
     if (mob.map !== character.map) return
-    if (!can_move_to(mob.x, mob.y) && !smart.moving) return smart_move(mob)
+    if (!can_move_to(mob.x, mob.y)) return smartMove(mob)
     const [x, y] = unitVector(character, mob)
     const safeDistance = radarRange(mob)
       ? Math.min(distance, radarRange(mob) - safeRangeFor(mob) - character.speed)
@@ -308,11 +312,6 @@
     return [dx / magnitude, dy / magnitude]
   }
 
-  const movePerpendicularTo = (point, distance) => {
-    const [x, y] = unitVector(character, point)
-    moveToward({ x: character.real_x - y, y: character.real_y + x }, distance) // 90° left
-  }
-
   function partyUp() {
     const partyNames = Object.keys(get_party())
     for (const name of followerNames) {
@@ -325,9 +324,14 @@
     return mob.range + mob.speed
   }
 
+  const smartMove = (destination, on_done) => {
+    moveDirection = 'smart'
+    if (!smart.moving) smart_move(destination, on_done)
+  }
+
   function startFollowers() {
     followerNames.forEach((name, index) => {
-      if (!get_player(name)) {
+      if (!get_party()[name] && !get_player(name)) {
         setTimeout(() => start_character(name, codeFollower), index * timeStartup)
         setTimeout(() => comeToMe(name), index * timeStartup + timeStartup)
         setTimeout(() => comeToMe(name), index * timeStartup + timeStartup * 2)

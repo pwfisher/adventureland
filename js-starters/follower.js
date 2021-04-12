@@ -40,8 +40,8 @@
   // STATE
   //
   let kitingMob = null
-  let leaderKey
-  let leaderPlayer
+  let leader
+  let leaderSmart
   let mobs = {}
   let mobToAttack = null
   let moveDirection = null // null | 'in' | 'out' | 'map'
@@ -63,12 +63,13 @@
   setInterval(tick, tickDelay)
   function tick() {
     ({ character: leader, smart: leaderSmart } = get('leader-state') ?? {})
-    ;({ id: leaderKey, map: leaderMap } = (leader ?? { id: '', map: '' }))
 
     if (character.rip) {
       if (autoRespawn) respawn()
       return resetState()
     }
+    if (smart.moving) resetState()
+
     if (autoLoot) loot()
     if (autoPotion) use_hp_or_mp()
 
@@ -79,7 +80,7 @@
     const aggroMob = getNearestMonster({ target: character.id, min_att: 1 })
     const hostileMob = getNearestHostile()
     const lockMob = get_targeted_monster()
-    const partyMob = getNearestMonster({ target: leaderKey }) // should include any party member targeted
+    const partyMob = getNearestMonster({ target: leader?.id }) // should include any party member targeted
     const priorityMob = getPriorityMob()
     const squishyMob = getNearestMonster({ min_xp: 1, max_hp: character.attack * 0.95 })
     const willAggroMob = getNearestMonster({ aggro: true, min_att: 1 })
@@ -128,9 +129,9 @@
     // MOVEMENT
     //
     if (autoMap && character.map !== autoMap)
-      dropItAndGoTo(autoMap)
+      smartMove(autoMap)
     else if (autoMob && !getNearestMonster({ type: autoMob }))
-      dropItAndGoTo(autoMob)
+      smartMove(autoMob)
     else if (aggroMob && (kitingMob || autoKite) && radarRange(aggroMob) <= safeRangeFor(aggroMob))
       kite(aggroMob)
     else if (willAggroMob && radarRange(willAggroMob) <= safeRangeFor(willAggroMob))
@@ -156,7 +157,7 @@
     //
     const uiRange = radarRange(mobToAttack) ? Math.round(radarRange(mobToAttack)) : uiBlank
     const uiWhich = whichMob?.slice(0, 5) || uiBlank
-    const uiDir = kitingMob ? 'kite' : moveDirection || uiBlank
+    const uiDir = smart.moving ? 'smart' : kitingMob ? 'kite' : moveDirection || uiBlank
     set_message(`${uiRange} ${uiWhich} ${uiDir}`)
   }
 
@@ -164,24 +165,21 @@
   // FUNCTIONS
   //
   const followOrStop = () => {
-    const leadGoingTo = { x: leader?.going_x, y: leader?.going_y }
-    const rangeLeader = leader && distance(character, leadGoingTo)
-    if (autoFollow && leader?.map && leader?.map !== character.map) {
-      if (!smart.moving) smart_move(leaderPlayer)
-      // else continue smart moving
-    }
-    else if (autoFollow && rangeLeader > rangeFollow)
-      moveToward(leader, Math.min(rangeChunk, rangeLeader))
-    else {
-      stop()
-      moveDirection = null
-    }
+    const map = leaderSmart.moving ? leaderSmart.map : leader?.map
+    if (map === 'bank') return
+    const leaderGoingTo = { map,  x: leader?.going_x, y: leader?.going_y }
+    const rangeLeaderGoingTo = leader && distance(character, leaderGoingTo)
+    if (autoFollow && leader?.map && leader.map !== character.map)
+      smartMove(leader.map)
+    else if (autoFollow && rangeLeaderGoingTo > rangeFollow)
+      moveToward(leaderGoingTo, Math.min(rangeChunk, rangeLeaderGoingTo))
+    else
+      stopMoving()
   }
 
-  const dropItAndGoTo = args => {
-    resetState()
-    if (!smart.moving) smart_move(args)
-    // else continue smart moving
+  const stopMoving = () => {
+    stop()
+    moveDirection = null
   }
 
   const kite = mob => {
@@ -232,12 +230,11 @@
 
   const moveToward = (mob, distance) => {
     if (mob.map !== character.map) return
-    if (!can_move_to(mob.x, mob.y) && !smart.moving) return smart_move(mob)
+    if (!can_move_to(mob.x, mob.y)) return smartMove(mob)
     const [x, y] = unitVector(character, mob)
     const safeDistance = radarRange(mob)
       ? Math.min(distance, radarRange(mob) - safeRangeFor(mob) - character.speed)
       : distance
-    // smart_move({ x: character.x + x * safeDistance, y: character.y + y * safeDistance })
     move(character.x + x * safeDistance, character.y + y * safeDistance)
     moveDirection = distance > 0 ? 'in' : 'out'
   }
@@ -247,9 +244,9 @@
     return mob.range + mob.speed
   }
 
-  const travelTo = name => {
-    const o = get_party()[name]
-    if (o && (o.in === o.map || o.in === character.in)) smart_move(o)
+  const smartMove = (destination, on_done) => {
+    moveDirection = 'smart'
+    if (!smart.moving) smart_move(destination, on_done)
   }
 
   function unitVector(from, to) {

@@ -9,23 +9,27 @@
   //
   // CONFIG
   //
-  const autoCompound = true
+  const autoCompound = false
   const autoCompoundLevelMax = 3
   const autoExchange = true
-  const autoLoot = true
+  const autoLoot = false
   const autoParty = false
-  const autoPotion = true
+  const autoPotion = false
   const autoSell = true
-  const autoSellTypes = ['helmet', 'shoes', 'gloves', 'pants', 'coat']
   const autoStand = true
   const autoTown = false
   const autoUpgrade = true
   const autoUpgradeSwap = true
   const autoUpgradeBuyType = '' // item key, e.g. 'staff'
-  const autoUpgradeMaxScrollLevel = 0
+  const autoUpgradeMaxScrollLevel = 1
   const bankPackKeys = ['items0', 'items1']
   const characterKeys = ['Binger', 'Dinger', 'Finger', 'Zinger']
   const tickDelay = 250
+
+  const autoSellTypes = [
+    'helmet', 'shoes', 'gloves', 'pants', 'coat',
+    'helmet1', 'shoes1', 'gloves1', 'pants1', 'coat1',
+  ]
 
   //
   // STATE
@@ -91,12 +95,11 @@
       if (!partyNames.includes(name)) send_party_invite(name)
     }
   }
-
-  const compoundAny = () => character.items.forEach(item => {
-    if (is_on_cooldown('compound') || !isCompoundableType(item?.name) || itemCount(item) < 3 || item.level >= autoCompoundLevelMax) return
+  const compoundAny = () => character.items.some(item => {
+    if (character.q.compound || !isCompoundableType(item?.name) || itemCount(item) < 3 || item.level >= autoCompoundLevelMax) return
     const slots = itemSlots(item)
     const scrollSlot = itemSlot({ type: 'cscroll' + item_grade(item) })
-    if (scrollSlot) compound(slots[0], slots[1], slots[2], scrollSlot)
+    if (scrollSlot) return compound(slots[0], slots[1], slots[2], scrollSlot)
   })
 
   const isNotNull = x => x !== null
