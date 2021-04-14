@@ -54,4 +54,8 @@ const moveClockwise = (mob, distance) => {
   moveToward({ map: mob.map, x: character.real_x - y, y: character.real_y + x }, distance)
 }
 
-const cancelSmartMove = () => smart_move({ x: character.real_x, y: character.real_y })
+change_server('EU','II')
+
+character.items.filter(Boolean).forEach((item, slot) => {
+  parent.socket.emit('send', { name: 'Finger', num: slot, q: item?.q || 1 });
+})

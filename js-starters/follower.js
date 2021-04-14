@@ -11,6 +11,7 @@
   // CONFIG
   //
   const autoAttack = true
+  const autoAvoidWillAggro = true
   const autoDefend = true
   const autoFollow = true
   const autoKite = !isMeleeType(character)
@@ -134,7 +135,7 @@
       smartMove(autoMob)
     else if (aggroMob && (kitingMob || autoKite) && radarRange(aggroMob) <= safeRangeFor(aggroMob))
       kite(aggroMob)
-    else if (willAggroMob && radarRange(willAggroMob) <= safeRangeFor(willAggroMob))
+    else if (autoAvoidWillAggro && willAggroMob && radarRange(willAggroMob) <= safeRangeFor(willAggroMob) && (!autoMelee || willAggroMob !== mobToAttack))
       moveToward(willAggroMob, -rangeChunk)
     else if (autoStalk && mobToAttack && whichMob !== 'squishy') {
       if (
@@ -142,7 +143,7 @@
         moveDirection === 'out' && radarRange(mobToAttack) >= Math.max(rangeStalk[0], safeRangeFor(mobToAttack))
       )
         followOrStop() // in goldilocks zone
-      else if (autoKite && radarRange(mobToAttack) <= safeRangeFor(mobToAttack))
+      else if (!autoMelee && radarRange(mobToAttack) <= safeRangeFor(mobToAttack))
         moveToward(mobToAttack, -rangeChunk)
       else if (radarRange(mobToAttack) > character.range)
         moveToward(mobToAttack, rangeChunk)
@@ -229,10 +230,10 @@
   const isSquishy = mob => mob?.hp < character.attack * 0.95
 
   const moveToward = (mob, distance) => {
-    if (mob.map !== character.map) return
+    if (mob.map !== undefined && mob.map !== character.map) return
     if (!can_move_to(mob.x, mob.y)) return smartMove(mob)
     const [x, y] = unitVector(character, mob)
-    const safeDistance = radarRange(mob)
+    const safeDistance = radarRange(mob) && !autoMelee
       ? Math.min(distance, radarRange(mob) - safeRangeFor(mob) - character.speed)
       : distance
     move(character.x + x * safeDistance, character.y + y * safeDistance)
@@ -240,6 +241,7 @@
   }
 
   const safeRangeFor = mob => {
+    if (autoMelee && mob === mobToAttack) return 0
     if (mob.attack === 0 || mob.target && mob.target !== character.id || isSquishy(mob)) return 0
     return mob.range + mob.speed
   }

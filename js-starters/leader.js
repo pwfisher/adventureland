@@ -17,15 +17,16 @@
   const autoAvoidWillAggro = !manualMode
   const autoHostile = false
   const autoKite = !isMeleeType(character)
+  const autoKitePath = true
   const autoLoot = true
-  const autoMap = 'cave'
+  const autoMap = 'arena'
   const autoMelee = isMeleeType(character)
-  const autoMob = 'bat'
+  const autoMob = ''
   const autoParty = true
   const autoPotion = true
   const autoPriority = true
   const autoRespawn = true
-  const autoRest = !manualMode
+  const autoRest = false
   const autoSquish = true
   const autoStalk = !manualMode
   const characterKeys = ['Binger', 'Dinger', 'Finger', 'Zinger']
@@ -39,7 +40,16 @@
   const tickDelay = 250
   const timeStartup = 7000
   const uiBlank = '--'
-  
+
+  // type KitePath = Point[]; type Point = { x: number, y: number }
+  // const kitePaths: Record<MapKey, KitePath[]>
+  // i.e. { cave: [ { x: 300, y: 475 }, ... ] }
+  load_code('kitePaths')
+
+  // compute config
+  const followerNames = characterKeys.filter(x => ![character.id, 'Dinger'].includes(x))
+
+  // update config in local storage
   set('follower-config', {
     autoMap,
     autoMob,
@@ -47,15 +57,13 @@
     autoPriority,
     priorityMobTypes,
   })
-
-  // computed config
-  const followerNames = characterKeys.filter(x => ![character.id, 'Dinger'].includes(x))
   
   //
   // STATE
   //
   let hasMoved
   let kitingMob = null
+  let kitePathPoint = null // { x, y }
   let mobs = {}
   let mobToAttack = null
   let moveDirection = null // null | 'in' | 'out'
@@ -64,6 +72,7 @@
 
   const resetState = () => {
     kitingMob = null
+    kitePathPoint = null
     mobs = {}
     mobToAttack = null
     moveDirection = null
@@ -76,6 +85,10 @@
   //
   if (autoParty) startFollowers()
 
+  console.clear()
+
+  setInterval(randomServer, 60 * 60 * 1000)
+
   //
   // TICK
   //
@@ -83,12 +96,13 @@
   function tick() {
     const { character: characterLast } = get('leader-state') ?? {}
     hasMoved = character.real_x !== characterLast?.real_x || character.real_y !== characterLast?.real_y
+    if (character.xp < characterLast.xp) game_log(`Lost ${characterLast.xp - character.xp} xp`)
 
     if (character.rip) {
       if (autoRespawn) respawn()
       return resetState()
     }
-    if (smart.moving) resetState()
+    if (smart.moving && moveDirection !== 'escape') resetState()
 
     if (autoLoot) loot()
     if (autoParty) partyUp()
@@ -100,7 +114,7 @@
     updateRadar()
     const aggroMob = getNearestMonster({ target: character.id, min_att: 1 })
     const hostileMob = getNearestHostile()
-    const juicyMob = getNearestMonster({ is_juicy: true })
+    const juicyMob = getNearestMonster({ is_juicy: true, min_xp: preyXpMin, max_att: preyAtkMax })
     const lockMob = get_targeted_monster()
     const partyMob = null // not implemented
     const preyMob = getNearestMonster({ min_xp: preyXpMin, max_att: preyAtkMax })
@@ -119,7 +133,10 @@
       squishyMob,
       willAggroMob,
     }
-    if (!aggroMob) kitingMob = null
+    if (kitingMob && !aggroMob) {
+      kitingMob = kitePathPoint = null
+      stop()
+    }
     const canSquish = autoSquish && squishyMob && is_in_range(squishyMob, 'attack') && !character.q.attack
 
     //
@@ -165,16 +182,15 @@
       smartMove(autoMob)
     else if (!smart.moving && moveDirection && !hasMoved && moveDirection !== 'escape') {
       game_log('we look stuck. escape!')
-      // todo magiport escape, past target, distance character.speed * 2
       const escapeMob = mobToAttack ?? willAggroMob ?? aggroMob
       if (escapeMob) {
         moveDirection = 'escape'
-        smartMoveToward(escapeMob, distance(character, escapeMob) + safeRangeFor(escapeMob) + character.speed)
+        smartMoveToward(escapeMob, distance(character, escapeMob) + safeRangeFor(escapeMob) + character.speed * 2)
       }
     }
     else if (aggroMob && (kitingMob || autoKite) && radarRange(aggroMob) <= safeRangeFor(aggroMob))
       kite(aggroMob)
-    else if (autoAvoidWillAggro && willAggroMob && radarRange(willAggroMob) <= safeRangeFor(willAggroMob))
+    else if (autoAvoidWillAggro && willAggroMob && radarRange(willAggroMob) <= safeRangeFor(willAggroMob) && (!autoMelee || willAggroMob !== mobToAttack))
       moveToward(willAggroMob, -rangeChunk)
     else if (autoStalk && mobToAttack && whichMob !== 'squishy') {
       if (
@@ -210,28 +226,35 @@
   // FUNCTIONS
   //
   const kite = mob => {
+    const kitePath = closestPath(kitePaths[character.map])
     kitingMob = mob
-    moveToward(mob, -rangeChunk)
+    if (autoKitePath && mob.max_hp > character.attack * 10 && kitePath) {
+      if (!kitePathPoint)
+        kitePathPoint = closestSafePoint(kitePath, mob)
+      else if (distance(mob, kitePathPoint) < safeRangeFor(mob) * 1.5) // mob cuts corner
+        kitePathPoint = kitePath[nextPointIndex(kitePath, kitePathPoint)]
+      move(kitePathPoint.x, kitePathPoint.y)
+    }
+    else return moveToward(mob, -rangeChunk)
   }
 
-  // const kiteCircles = [ // known circling locations
-  // todo add radius. see Cave
-  //   { map: 'main', x: -367, y: 420 }, // training automaton area
-  //   { map: 'cave', x: , y:  }
-  // ]
+  const closestPoint = points => points
+    .map(o => ({ ...o, range: distance(character, o) }))
+    .reduce(minRange, { range: Infinity })
 
-  // // if kiteCircle within range, move toward circle center
-  // // when circumference hit, turn 90° and begin circling
-  // const kite = mob => {
-  //   kitingMob = mob
-  //   const circle = kiteCircles
-  //     .filter(o => o.map === character.map)
-  //     .map(o => ({ ...o, range: distance(character, o) }))
-  //     .reduce(minRange, { range: Infinity })
-  //   if (circle.range < mob.range + mob.speed) movePerpendicularTo(circle, rangeChunk)
-  //   else if (circle.range < character.range + character.speed) moveToward(circle, rangeChunk)
-  //   else moveToward(mob, -rangeChunk)
-  // }
+  const closestPath = paths => {
+    if (!paths) return null
+    const closestTrailhead = closestPoint(paths.map(path => path[0]))
+    return paths.find(path => path[0].x === closestTrailhead.x && path[0].y === closestTrailhead.y)
+  }
+
+  const closestSafePoint = (points, mob) => closestPoint(
+    points.filter(x => distance(mob, x) > safeRangeFor(mob))
+  )
+
+  const pointIndex = (points, point) => points.findIndex(o => o.x === point.x && o.y === point.y)
+
+  const nextPointIndex = (points, point) => (pointIndex(points, point) + 1) % points.length
 
   // "radar" caches "radar pings" [{ mob, range }] for performance
   const updateRadar = () => {
@@ -272,29 +295,16 @@
 
   const getNearestHostile = args => null // todo
 
-  // Case: froggie over tortoise
-  // -- choose juiciest prey closer than (character.range + character.speed * 0.3)
-  // -- i.e. I will wait 30% of a step for a juicier target
-  // const getPreyMob = () => {
-  //   const preferredMobs = getRadarPings({ is_juicy: true })
-  //   if (autoJuicy && preferredMobs.length) {
-  //     console.log('found juicy target', getClosestRadarPing(preferredMobs))
-  //     return getClosestRadarPing(preferredMobs)
-  //   }
-  //   else return getNearestMonster({ min_xp: preyXpMin, max_att: preyAtkMax })
-  // }
-  
   const iAmTargetOf = mob => mob?.target === character.id
-  const isSafePrey = mob => !mob.dreturn && mob.speed < character.speed
+  const isSafePrey = mob => mob.speed < (character.speed - 1) && !mob.dreturn
 
   const moveToward = (mob, distance) => {
-    if (mob.map !== character.map) return
+    if (mob.map !== undefined && mob.map !== character.map) return
     if (!can_move_to(mob.x, mob.y)) return smartMove(mob)
     const [x, y] = unitVector(character, mob)
     const safeDistance = radarRange(mob)
       ? Math.min(distance, radarRange(mob) - safeRangeFor(mob) - character.speed)
       : distance
-    // smart_move({ x: character.x + x * safeDistance, y: character.y + y * safeDistance })
     move(character.x + x * safeDistance, character.y + y * safeDistance)
     moveDirection = distance > 0 ? 'in' : 'out'
   }
@@ -343,6 +353,12 @@
     const { map, real_x, real_y } = character
     const snippet = `smart_move({ map: '${map}', x: ${real_x}, y: ${real_y}})`
     parent.character_code_eval(name, snippet)
+  }
+
+  function randomServer() {
+    const servers = ['US-I', 'US-II', 'US-III', 'US-PVP', 'EU-I', 'EU-II', 'EU-PVP', 'ASIA-I']
+    const server = servers[Math.floor(Math.random() * servers.length)].split('-')
+    change_server(server[0], server[1])
   }
 
   //

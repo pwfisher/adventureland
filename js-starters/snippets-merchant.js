@@ -20,7 +20,7 @@
   // Bank inventory in packs "items0", "items1", etc. Wrapping some game functions for friendlier argument names.
   const openSlotInBankPack = key => bankPack(key).find(isNull)
   const getPackWithSpace = () => bankPackKeys.find(openSlotInBankPack)
-  const bankWithdrawAll = () => bank_withdraw(character.bank.gold)
+  const bankWithdrawAll = () => bank_withdraw(123456789)
   const sellAll = () => character.items.forEach((o, slot) => { if (o) sell(slot, o.q || 1) })
 
   //
@@ -53,20 +53,14 @@
 
   const bankRetrieve = ({ name, type, level }) => bankPackKeys.forEach(packKey => {
     bankPack(packKey).forEach((o, slot) => {
-      if (o?.name !== (name || type)) return
-      if (level !== undefined && o?.level !== level) return
-      bank_retrieve(packKey, slot)
       if (!(name || type) && o?.name !== (name || type)) return
       if (level !== undefined && o?.level !== level) return
       bank_retrieve(packKey, slot)
     })
   })
 
-  const bankRetrieveCompoundables = () => bankPackKeys.some(x => bankPack(x).some(o => {
-    if (isCompoundableType(o?.name) && bankCount(o) >= 3) {
-      bankRetrieveCount(o, 3)
-      return true
-    }
+  const bankRetrieveCompoundables = () => bankPackKeys.forEach(x => bankPack(x).forEach(o => {
+    if (isCompoundableType(o?.name) && bankCount(o) >= 3) bankRetrieveCount(o, 3)
   }))
 
   const bankStoreItem = (item, slot) => {
@@ -75,7 +69,7 @@
     if (isStackableType(item.name)) {
       bankPackKeys.some(packKey => {
         if (!character.bank[packKey]) return
-        const packSlot = itemSlot(item, bankPack(packKey))
+        const packSlot = bagSlot(item, bankPack(packKey))
         if (packSlot && can_stack(item, bankPack(packKey)[packSlot])) {
           console.log(`stacking ${item.name}`)
           let openPackSlot = openSlotInBankPack(packKey)
@@ -86,7 +80,7 @@
             stacked = true
             return true
           } // else
-          const openSlot = openSlots()[0]
+          const openSlot = openSlots(character.items)[0]
           if (openSlot > -1) {
             console.log(`can’t stack in full pack, but can swap to open slot`)
             const swapSlot = (packSlot + 1) % packSize
@@ -120,10 +114,10 @@
   const goJustOutsideBank = cb => smart_move({ map: 'main', x: 168, y: -134 }, cb)
 
   const compoundAny = () => character.items.some(item => {
-    if (character.q.compound || !isCompoundableType(item?.name) || itemCount(item) < 3 || item.level >= autoCompoundLevelMax) return
-    const slots = itemSlots(item)
-    const scrollSlot = itemSlot({ type: 'cscroll' + item_grade(item) })
-    if (scrollSlot) return compound(slots[0], slots[1], slots[2], scrollSlot)
+    if (character.q.compound || !isCompoundableType(item?.name) || bagCount(item, character.items) < 3 || item.level >= autoCompoundLevelMax) return
+    const slots = bagSlots(item, character.items)
+    const scrollSlot = bagSlot({ type: 'cscroll' + item_grade(item) }, character.items)
+    if (scrollSlot > -1) return compound(slots[0], slots[1], slots[2], scrollSlot)
   })
 
   const isCompoundableType = type => type && G.items[type].compound
@@ -131,28 +125,28 @@
   const isStackableType = type => type && G.items[type]?.s
   const isUpgradeableType = type => type && G.items[type]?.upgrade
 
+  // A "bag" is character.items or, e.g., character.bank['items0']
   // name or type is required (no filter just by level). Support name or type due to handle data structure inconsistency.
   const itemFilter = arg => o => o?.name === (arg.name || arg.type) && (arg.level === undefined || o.level === arg.level)
-  const bagCount = (item, bag) => Array.isArray(bag) ? bag.filter(itemFilter(item)).length : 0 // todo reduce quantity
-  const bankCount = item => bankPackKeys.map(x => itemCount(item, character.bank[x])).reduce((x, o) => x + o, 0)
-  const itemCount = item => bagCount(item, character.items)
-  const itemSlot = (o, bag) => itemSlots(o, bag)?.[0]
-  const itemSlots = (arg, bag = character.items) => bag.map((o, slot) => itemFilter(arg)(o) ? slot : null).filter(isNotNull)
-  const openSlots = () => character.items.map((o, slot) => o ? null : slot).filter(isNotNull)
+  const bagCount = (item, bag) => item && Array.isArray(bag) ? bag.filter(itemFilter(item)).reduce((x, o) => x + (o.q || 1), 0) : 0
+  const bankCount = item => bankPackKeys.map(x => bagCount(item, character.bank[x])).reduce((x, o) => x + o, 0)
+  const bagSlot = (item, bag) => bagSlots(item, bag)?.[0]
+  const bagSlots = (arg, bag) => bag.map((o, slot) => itemFilter(arg)(o) ? slot : null).filter(isNotNull)
+  const openSlots = bag => bag.map((o, slot) => o ? null : slot).filter(isNotNull)
 
   console.log('Executing snippets-merchant.js')
+  if (!character.map === 'bank') return
   //
   // ...your code here
   //
-  // if (!character.map === 'bank') smart_move('bank')
-  bankStoreAll()
-  bankRetrieveCompoundables()
-  goJustOutsideBank(compoundAny)
-  //
+  // bankWithdrawAll()
   // bank_deposit(character.gold)
   // bankStore({ name: 'whiteegg', q: 1 })
-  // bankWithdrawAll()
   // for (let i = 0; i < 9; i++) bankRetrieve({ type: 'egg' + i })
-  //
+  // show_json(bankCount({ name: 'dexring', level: 0 }))
+
+  // bankStoreAll()
+  bankRetrieveCompoundables()
+  // goJustOutsideBank(compoundAny)
 })()
 // end snippets-merchant.js
