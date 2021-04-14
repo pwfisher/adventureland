@@ -14,28 +14,24 @@
   const autoAvoidWillAggro = true
   const autoDefend = true
   const autoFollow = true
+  let autoHostile = false
   const autoKite = !isMeleeType(character)
   const autoLoot = true
   const autoMelee = isMeleeType(character)
+  let autoMob = ''
   const autoPotion = true
+  let autoPriority = false
   const autoRespawn = true
   const autoSquish = true
   const autoStalk = true
   const characterKeys = ['Binger', 'Dinger', 'Finger', 'Zinger']
+  let priorityMobTypes = []
   const rangeChunk = character.speed
   const rangeFollow = 10
   const rangeRadar = 2000
   const rangeStalk = [character.range * 0.8, character.range]
   const tickDelay = 250
   const uiBlank = '--'
-
-  const {
-    autoMap,
-    autoMob,
-    autoHostile,
-    autoPriority,
-    priorityMobTypes,
-  }= get('follower-config') || {}
 
   //
   // STATE
@@ -64,6 +60,13 @@
   setInterval(tick, tickDelay)
   function tick() {
     ({ character: leader, smart: leaderSmart } = get('leader-state') ?? {})
+    ;({
+      autoMap,
+      autoMob,
+      autoHostile,
+      autoPriority,
+      priorityMobTypes,
+    } = get('follower-config') || {})
 
     if (character.rip) {
       if (autoRespawn) respawn()
