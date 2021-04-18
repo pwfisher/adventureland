@@ -5,13 +5,13 @@
    * @author Patrick Fisher <patrick@pwfisher.com>
    * @see https://github.com/kaansoral/adventureland
    */
-  const isMeleeType = character => ['warrior', 'rogue'].includes(character.ctype)
+  const isMeleeType = player => ['warrior', 'rogue'].includes(player.ctype)
 
   //
   // CONFIG
   //
   const autoAttack = true
-  const autoAvoidWillAggro = true
+  let autoAvoidWillAggro = true
   const autoDefend = true
   const autoFollow = true
   let autoHostile = false
@@ -24,19 +24,22 @@
   const autoRespawn = true
   const autoSquish = true
   const autoStalk = true
-  const characterKeys = ['Binger', 'Dinger', 'Finger', 'Zinger']
+  const characterKeys = ['Banger', 'Binger', 'Dinger', 'Finger', 'Hunger', 'Longer', 'Zinger']
   let priorityMobTypes = []
   const rangeChunk = character.speed
   const rangeFollow = 10
-  const rangeRadar = 2000
+  const rangeRadar = Infinity
   const rangeStalk = [character.range * 0.8, character.range]
   const tickDelay = 250
   const uiBlank = '--'
+
+  smart.use_town = false
 
   //
   // STATE
   //
   let kitingMob = null
+  let lastPotion = new Date()
   let leader
   let leaderSmart
   let mobs = {}
@@ -61,9 +64,10 @@
   function tick() {
     ({ character: leader, smart: leaderSmart } = get('leader-state') ?? {})
     ;({
+      autoAvoidWillAggro,
+      autoHostile,
       autoMap,
       autoMob,
-      autoHostile,
       autoPriority,
       priorityMobTypes,
     } = get('follower-config') || {})
@@ -75,7 +79,7 @@
     if (smart.moving) resetState()
 
     if (autoLoot) loot()
-    if (autoPotion) use_hp_or_mp()
+    if (autoPotion) usePotion()
 
     //
     // RADAR
@@ -99,7 +103,7 @@
       willAggroMob,
     }
     if (!aggroMob) kitingMob = null
-    const canSquish = autoSquish && squishyMob && is_in_range(squishyMob, 'attack') && !character.q.attack
+    const canSquish = autoSquish && squishyMob && is_in_range(squishyMob, 'attack') && !character.q.attack && !isOnCooldown('attack')
 
     //
     // ATTACK
@@ -132,7 +136,7 @@
     //
     // MOVEMENT
     //
-    if (autoMap && character.map !== autoMap)
+    if (autoMap && character.map && character.map !== autoMap)
       smartMove(autoMap)
     else if (autoMob && !getNearestMonster({ type: autoMob }))
       smartMove(autoMob)
@@ -208,7 +212,7 @@
   const getNearestMonster = args => getClosestRadarPing(getRadarPings(args))
 
   const getRadarPings = (args = {}) => radar.filter(({ mob }) => {
-    if (mob.name === 'Target Automatron') return
+    // if (mob.name === 'Target Automatron') return
     if (mob.map !== character.map) return
     if (args.aggro && mob.aggro <= 0.1) return
     if (args.is_juicy && mob.xp > mob.hp * 1.5) return
@@ -259,6 +263,29 @@
     const dy = to.y - from.y
     const magnitude = Math.sqrt(dx * dx + dy * dy)
     return [dx / magnitude, dy / magnitude]
+  }
+
+  function usePotion() {
+    if (safeties && mssince(lastPotion) < min(200, character.ping * 3)) return
+    if (isOnCooldown('use_hp')) return // use_mp shares use_hp cooldown somehow
+    const hpPotionAmount = 400
+    const mpPotionAmount = 500
+    const mpRatio = character.mp / character.max_mp
+    const mpLost = character.max_mp - character.mp
+    const hpLost = character.max_hp - character.hp
+    let used = true
+    if (mpRatio < 0.2) use_skill('use_mp')
+    else if (hpLost > hpPotionAmount) use_skill('use_hp')
+    else if (mpLost > mpPotionAmount) use_skill('use_mp')
+    else if (hpLost) use_skill('regen_hp')
+    else if (mpLost) use_skill('regen_mp')
+    else used = false
+    if (used) lastPotion = new Date()
+  }
+
+  function isOnCooldown(skill) {
+    const cooldownKey = G.skills[skill]?.share ?? skill
+    return parent.next_skill[cooldownKey] && new Date() < parent.next_skill[cooldownKey]
   }
 
   //

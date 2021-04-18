@@ -16,24 +16,28 @@
   const autoParty = false
   const autoPotion = true
   const autoSell = true
+  const autoSellMaxLevel = 3
   const autoStand = true
   const autoTown = false
   const autoUpgrade = true
   const autoUpgradeBuyType = '' // item key, e.g. 'staff'
   const autoUpgradeMaxGrade = 1
-  const autoUpgradeMaxLevel = 8
+  const autoUpgradeMaxLevel = 6
   const bankPackKeys = ['items0', 'items1']
-  const characterKeys = ['Binger', 'Dinger', 'Finger', 'Zinger']
+  const characterKeys = ['Banger', 'Binger', 'Dinger', 'Finger', 'Hunger', 'Longer', 'Zinger']
+  const partyKeys = []
+  const rangeRadar = Infinity
   const tickDelay = 250
 
   const autoSellTypes = [
     'bwing', 'beewings',
     'cape', 'coat', 'coat1',
-    'gloves', 'gloves1',
+    'gloves', 'gloves1', 'gslime',
     'helmet', 'helmet1',
     'ijx',
     'pants', 'pants1',
-    'seashell', 'shadowstone', 'shoes', 'shoes1',
+    'seashell', 'shadowstone', 'shoes', 'shoes1', 'sword',
+    'throwingstars',
     'whiteegg',
   ]
 
@@ -53,54 +57,61 @@
   // LOOP
   //
   setInterval(() => {
+    const { map } = character
     const item0 = character.items[0]
     if (character.rip) {
       if (autoRespawn) respawn()
       return resetState()
     }
 
-    if (autoCompound && !character.q.compound) compoundAny()
-    if (autoExchange && !character.q.exchange && isExchangeableType(item0?.name)) exchange(0)
-    if (autoLoot) loot()
     if (autoParty) partyUp()
     if (autoPotion) use_hp_or_mp()
-    if (autoSell) character.items.forEach((item, slot) => {
-      if (autoSellTypes.includes(item?.name) && (item?.level === undefined || item.level < 6)) sell(slot, 9999)
-    })
     if (autoStand) {
       if (is_moving(character) && character.stand) close_stand()
       else if (!is_moving(character) && !character.stand) open_stand()
     }
-    if (autoUpgrade && !character.q.upgrade) {
-      const upgradeSlot = autoUpgradeableSlot()
-      if (upgradeSlot > -1) {
-        const scrollSlot = bagSlot({ type: 'scroll' + item_grade(character.items[upgradeSlot]) }, character.items)
-        if (scrollSlot) upgrade(upgradeSlot, scrollSlot)
+    luckPlayersInRange()
+
+    if (map !== 'bank') {
+      if (autoCompound) compoundAny()
+      if (autoExchange) exchangeSlot0()
+      if (autoSell) character.items.forEach((item, slot) => {
+        if (autoSellTypes.includes(item?.name) && (item?.level === undefined || item.level <= autoSellMaxLevel)) sell(slot, 9999)
+      })
+      if (autoLoot) loot()
+      if (autoUpgrade && !character.q.upgrade && !isOnCooldown('upgrade')) {
+        const upgradeSlot = autoUpgradeableSlot()
+        if (upgradeSlot > -1) {
+          const scrollSlot = bagSlot({ type: 'scroll' + item_grade(character.items[upgradeSlot]) }, character.items)
+          if (scrollSlot) upgrade(upgradeSlot, scrollSlot)
+        }
+        else if (autoUpgradeBuyType && !character.items[0]) buy(autoUpgradeBuyType)
       }
-      else if (autoUpgradeBuyType && !character.items[0]) buy(autoUpgradeBuyType)
     }
-    // todo merchant's luck (if merchant)
     // alphabetize bank to group compoundables?
+    // autoRealmRotate, buy from Ponty ['ringsj', 'intring', 'dexring', 'strring', ...]
 }, tickDelay)
 
   //
   // Functions
   //
+  function exchangeSlot0() {
+    if (character.q.exchange || isOnCooldown('exchange')) return
+    if (isExchangeableType(character.items[0]?.name)) exchange(0)
+  }
+
   function openStandInTown() {
     const x = -100 - Math.round(Math.random() * 50)
     const y = -100 - Math.round(Math.random() * 50)
     smart_move({ map: 'main', x, y }, () => move(x, y + 1)) // face forward
   }
 
-  function partyUp() {
-    const partyNames = Object.keys(get_party())
-    for (const name of characterKeys) {
-      if (!partyNames.includes(name)) send_party_invite(name)
-    }
-  }
+  const partyUp = () => partyKeys.forEach(key => {
+    if (!get_party()[key]) send_party_invite(key)
+  })
 
   const compoundAny = () => character.items.some(item => {
-    if (character.q.compound || !isCompoundableType(item?.name) || bagCount(item, character.items) < 3 || item.level >= autoCompoundLevelMax) return
+    if (character.q.compound || isOnCooldown('compound') || !isCompoundableType(item?.name) || bagCount(item, character.items) < 3 || item.level >= autoCompoundLevelMax) return
     const slots = bagSlots(item, character.items)
     const scrollSlot = bagSlot({ type: 'cscroll' + item_grade(item) }, character.items)
     if (scrollSlot > -1) return compound(slots[0], slots[1], slots[2], scrollSlot)
@@ -126,11 +137,41 @@
   const bagSlots = (arg, bag) => bag.map((o, slot) => itemFilter(arg)(o) ? slot : null).filter(isNotNull)
   const openSlots = bag => bag.map((o, slot) => o ? null : slot).filter(isNotNull)
 
+  const luckPlayersInRange = () => {
+    Object.entries(parent.entities)
+      .map((_, x) => x)
+      .filter(mob => mob.s?.mluck?.f !== character.id)
+      // range: G.skills.mluck.range - 20
+  }
+
+  // "radar" caches "radar pings" [{ mob, range }] for performance
+  const updatePlayerRadar = () => {
+    playerRadar = []
+    for (id in parent.entities) {
+      const mob = parent.entities[id]
+      if (mob.type !== 'player' || !mob.visible || mob.dead) continue
+      const range = distance(character, mob)
+      if (range > rangeRadar) continue
+      playerRadar.push({ mob, range })
+    }
+  }
+
+  function isOnCooldown(skill) {
+    const cooldownKey = G.skills[skill]?.share ?? skill
+    return parent.next_skill[cooldownKey] && new Date() < parent.next_skill[cooldownKey]
+  }
+
   //
   // Hooks
   //
   on_party_invite = key => {
     if (characterKeys.includes(key)) accept_party_invite(key)
   }
+
+  // For luck
+  // Merchant's Luck: 12%
+  // PVP server: 5%
+  // lucky ring
+  // Wanderer's set, 5 pieces: 16%
 })()
 // end upgrader.js

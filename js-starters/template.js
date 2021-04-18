@@ -7,13 +7,10 @@
  * @author Kaan Soral <hello@adventure.land>
  * @see https://github.com/kaansoral/adventureland
  */
-const attack_mode = true
+const attack_mode = false
 
-const loopTime = 250
-
-setInterval(function () {
+function mainLoop() {
   use_hp_or_mp()
-
   loot()
 
   if (!attack_mode || character.rip || is_moving(character)) return
@@ -25,7 +22,9 @@ setInterval(function () {
     set_message('Attacking')
     attack(target)
   }
-}, loopTime)
+}
+
+setInterval(mainLoop, 250)
 
 function getTarget() {
   let target = get_targeted_monster()

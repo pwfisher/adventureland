@@ -5,16 +5,19 @@
    * @author Patrick Fisher <patrick@pwfisher.com>
    * @see https://github.com/kaansoral/adventureland
    */
-  const isMeleeType = character => ['warrior', 'rogue'].includes(character.ctype)
+  const isMeleeType = player => ['warrior', 'rogue'].includes(player.ctype)
+  const TEMPORARILY_FALSE = false
+  const TEMPORARILY_TRUE = true
 
-  const manualMode = false
+  const manualMode = false // || TEMPORARILY_TRUE
 
   //
   // CONFIG
   //
   const autoAttack = true
+  const autoAvoidWillAggro = !manualMode && TEMPORARILY_FALSE
   const autoDefend = true
-  const autoAvoidWillAggro = !manualMode
+  // const autoElixir = true
   const autoHostile = false
   const autoKite = !isMeleeType(character)
   const autoKitePath = true
@@ -22,20 +25,23 @@
   const autoMap = 'arena'
   const autoMelee = isMeleeType(character)
   const autoMob = ''
-  const autoParty = true
+  const autoParty = true // && TEMPORARILY_FALSE
   const autoPotion = true
   const autoPriority = true
+  const autoRealm = true
+  const autoRealmMinutes = 5
   const autoRespawn = true
   const autoRest = false
   const autoSquish = true
   const autoStalk = !manualMode
-  const characterKeys = ['Binger', 'Dinger', 'Finger', 'Zinger']
+  const characterKeys = ['Banger', 'Binger', 'Dinger', 'Finger', 'Hunger', 'Longer', 'Zinger']
   const codeFollower = 'Follower'
+  const partyKeys = ['Finger', 'Zinger', 'Hunger']
   const preyAtkMax = 1000
   const preyXpMin = 300
   const priorityMobTypes = ['greenjr', 'wabbit']
   const rangeChunk = character.speed
-  const rangeRadar = 2000
+  const rangeRadar = Infinity
   const rangeStalk = [character.range * 0.8, character.range]
   const tickDelay = 250
   const timeStartup = 7000
@@ -46,24 +52,25 @@
   // i.e. { cave: [ { x: 300, y: 475 }, ... ] }
   load_code('kitePaths')
 
-  // compute config
-  const followerNames = characterKeys.filter(x => ![character.id, 'Dinger'].includes(x))
-
   // update config in local storage
   set('follower-config', {
+    autoAvoidWillAggro,
+    autoHostile,
     autoMap,
     autoMob,
-    autoHostile,
     autoPriority,
     priorityMobTypes,
   })
-  
+
+  smart.use_town = false
+
   //
   // STATE
   //
   let hasMoved
   let kitingMob = null
   let kitePathPoint = null // { x, y }
+  let lastPotion = new Date()
   let mobs = {}
   let mobToAttack = null
   let moveDirection = null // null | 'in' | 'out'
@@ -80,14 +87,24 @@
     whichMob = null
   }
 
+  const setLeaderState = () => setLSKey('leader-state', { character, mobToAttack, smart, whichMob })
+
   //
   // INIT
   //
   if (autoParty) startFollowers()
+  if (autoRealm) {
+    setInterval(randomServer, autoRealmMinutes * 60 * 1000)
+    setInterval(() => game_log('Realm hop in 60 seconds'), (autoRealmMinutes - 1) * 60 * 1000)
+  }
+
+  ;({ character: previousLeader } = get('leader-state') ?? {})
+  if (previousLeader.id !== character.id) {
+    game_log(`Leader was ${previousLeader.id}, now ${character.id}`)
+    setLeaderState()
+  }
 
   console.clear()
-
-  setInterval(randomServer, 60 * 60 * 1000)
 
   //
   // TICK
@@ -96,7 +113,8 @@
   function tick() {
     const { character: characterLast } = get('leader-state') ?? {}
     hasMoved = character.real_x !== characterLast?.real_x || character.real_y !== characterLast?.real_y
-    if (character.xp < characterLast.xp) game_log(`Lost ${characterLast.xp - character.xp} xp`)
+
+    if (characterLast.id !== character.id) return game_log(`Extra leader: ${character.id}`)
 
     if (character.rip) {
       if (autoRespawn) respawn()
@@ -106,7 +124,7 @@
 
     if (autoLoot) loot()
     if (autoParty) partyUp()
-    if (autoPotion) use_hp_or_mp()
+    if (autoPotion) usePotion()
 
     //
     // RADAR
@@ -137,7 +155,7 @@
       kitingMob = kitePathPoint = null
       stop()
     }
-    const canSquish = autoSquish && squishyMob && is_in_range(squishyMob, 'attack') && !character.q.attack
+    const canSquish = autoSquish && squishyMob && is_in_range(squishyMob, 'attack') && !character.q.attack && !isOnCooldown('attack')
 
     //
     // ATTACK
@@ -188,7 +206,7 @@
         smartMoveToward(escapeMob, distance(character, escapeMob) + safeRangeFor(escapeMob) + character.speed * 2)
       }
     }
-    else if (aggroMob && (kitingMob || autoKite) && radarRange(aggroMob) <= safeRangeFor(aggroMob))
+    else if (aggroMob && (kitingMob || autoKite) && canKite(aggroMob) && radarRange(aggroMob) <= safeRangeFor(aggroMob))
       kite(aggroMob)
     else if (autoAvoidWillAggro && willAggroMob && radarRange(willAggroMob) <= safeRangeFor(willAggroMob) && (!autoMelee || willAggroMob !== mobToAttack))
       moveToward(willAggroMob, -rangeChunk)
@@ -200,7 +218,7 @@
         stop() // in goldilocks zone
         moveDirection = null
       }
-      else if (autoKite && radarRange(mobToAttack) <= safeRangeFor(mobToAttack))
+      else if (autoKite && canKite(mobToAttack) && radarRange(mobToAttack) <= safeRangeFor(mobToAttack))
         moveToward(mobToAttack, -rangeChunk)
       else if (radarRange(mobToAttack) > character.range)
         moveToward(mobToAttack, rangeChunk)
@@ -219,16 +237,20 @@
     set_message(`${uiRange} ${uiWhich} ${uiDir}`)
     // set_message(`smart: ${smart.moving}`)
 
-    set('leader-state', { character, mobToAttack, smart, whichMob })
+    if (character.xp < characterLast.xp) game_log(`Lost ${characterLast.xp - character.xp} xp`)
+
+    setLeaderState()
   }
 
   //
   // FUNCTIONS
   //
+  const canKite = mob => character.speed > mob.speed && character.range > mob.range
+
   const kite = mob => {
     const kitePath = closestPath(kitePaths[character.map])
     kitingMob = mob
-    if (autoKitePath && mob.max_hp > character.attack * 10 && kitePath) {
+    if (autoKitePath && mob.hp > character.attack * 10 && kitePath) { // nb: no path if mob.hp low
       if (!kitePathPoint)
         kitePathPoint = closestSafePoint(kitePath, mob)
       else if (distance(mob, kitePathPoint) < safeRangeFor(mob) * 1.5) // mob cuts corner
@@ -242,7 +264,7 @@
     .map(o => ({ ...o, range: distance(character, o) }))
     .reduce(minRange, { range: Infinity })
 
-  const closestPath = paths => {
+  const closestPath = paths => { // todo: closest point anywhere in any path?
     if (!paths) return null
     const closestTrailhead = closestPoint(paths.map(path => path[0]))
     return paths.find(path => path[0].x === closestTrailhead.x && path[0].y === closestTrailhead.y)
@@ -275,7 +297,7 @@
     if (mob.name === 'Target Automatron') return
     if (mob.map !== character.map) return
     if (args.aggro && mob.aggro <= 0.1) return
-    if (args.is_juicy && mob.xp < mob.hp * 1.5) return
+    if (args.is_juicy && mob.xp < mob.hp * 2) return
     if (args.mtype && mob.mtype !== args.mtype) return
     if (args.min_xp && mob.xp < args.min_xp) return
     if (args.min_att && mob.attack < args.min_att) return
@@ -322,12 +344,32 @@
     return [dx / magnitude, dy / magnitude]
   }
 
-  function partyUp() {
-    const partyNames = Object.keys(get_party())
-    for (const name of followerNames) {
-      if (!partyNames.includes(name)) send_party_invite(name)
-    }
+  function usePotion() {
+    if (safeties && mssince(lastPotion) < min(200, character.ping * 3)) return
+    if (isOnCooldown('use_hp')) return // use_mp shares use_hp cooldown somehow
+    const hpPotionAmount = 400
+    const mpPotionAmount = 500
+    const mpRatio = character.mp / character.max_mp
+    const mpLost = character.max_mp - character.mp
+    const hpLost = character.max_hp - character.hp
+    let used = true
+    if (mpRatio < 0.2) use_skill('use_mp')
+    else if (hpLost > hpPotionAmount) use_skill('use_hp')
+    else if (mpLost > mpPotionAmount) use_skill('use_mp')
+    else if (hpLost) use_skill('regen_hp')
+    else if (mpLost) use_skill('regen_mp')
+    else used = false
+    if (used) lastPotion = new Date()
   }
+
+  function isOnCooldown(skill) {
+    const cooldownKey = G.skills[skill]?.share ?? skill
+    return parent.next_skill[cooldownKey] && new Date() < parent.next_skill[cooldownKey]
+  }
+
+  const partyUp = () => partyKeys.forEach(key => {
+    if (!get_party()[key]) send_party_invite(key)
+  })
 
   const safeRangeFor = mob => {
     if (mob.attack === 0 || mob.target && mob.target !== character.id) return 0
@@ -340,7 +382,7 @@
   }
 
   function startFollowers() {
-    followerNames.forEach((name, index) => {
+    partyKeys.forEach((name, index) => {
       if (!get_party()[name] && !get_player(name)) {
         setTimeout(() => start_character(name, codeFollower), index * timeStartup)
         setTimeout(() => comeToMe(name), index * timeStartup + timeStartup)
@@ -368,12 +410,13 @@
     if (characterKeys.includes(key)) accept_party_invite(key)
   }
 
-  // replace game `set` to strip circular references
-  window.set = (key, value) => {
+  // replace game’s `set` to strip circular references
+  function setLSKey(key, value) {
     try {
       window.localStorage.setItem(
         `cstore_${key}`,
         JSON.stringify(value, (k, v) => {
+          // data-specific. nullify _foo, _bar, children, parent, scope.
           if (k[0] === '_') return null
           return ['children','parent','scope'].includes(k) ? null : v
         })

@@ -1,0 +1,20 @@
+{
+  "name": "pwfisher-adventureland",
+  "description": "Bots for the game adventure.land",
+  "homepage": "https://github.com/pwfisher/adventureland",
+  "author": "Patrick Fisher <patrick@pwfisher.com>",
+  "version": "1.0.0",
+  "license": "MIT",
+  "main": "dist/main.js",
+  "scripts": {
+    "test": "jest"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pwfisher/adventureland.git"
+  },
+  "keywords": [
+    "mmorpg",
+    "bot"
+  ]
+}

