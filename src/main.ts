@@ -7,6 +7,9 @@ async function run() {
   ])
 
   const merchant = await AL.Game.startMerchant('Dinger', 'US', 'PVP')
+
+  console.log("isAvailable('upgrade')", isAvailable('upgrade'))
+
   console.log('Moving to main')
   await merchant.smartMove('main')
   console.log('Moving to cyberland')
