@@ -53,7 +53,7 @@
   load_code('kitePaths')
 
   // computed config
-  const partyKeys = [...followerKeys, ...healerKeys]
+  const partyKeys = [...healerKeys, ...followerKeys].filter(x => x !== character.id).slice(0, 2)
 
   // update config in local storage
   set('follower-config', {
