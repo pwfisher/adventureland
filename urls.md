@@ -16,6 +16,7 @@ Docs
   - It is an elegant overloaded function signature, but hard to follow without TypeScript.
 - Unofficial Docs https://nexusnull.github.io/adventureland (NexusNull online 2021-04)
 - Sin's Guide https://steamcommunity.com/sharedfiles/filedetails/?id=1636142608 (SinBot online 2021-04)
+- https://adventureland.fandom.com/wiki/AdventureLand_Wiki
 
 Tools
 
@@ -25,6 +26,7 @@ Tools
 Coders
 
 - https://github.com/earthiverse/adventureland-bots
+- https://github.com/egehanhk/al-code-snippets
 - https://github.com/johnnyawesome/Adventure.Land
 - https://github.com/jorbo/adventureland
 - https://github.com/pwfisher/adventureland

@@ -1,0 +1,13 @@
+export type TitleType =
+  | 'critmonger'
+  | 'fast'
+  | 'festive'
+  | 'firehazard'
+  | 'glitched'
+  | 'gooped'
+  | 'legacy'
+  | 'lucky'
+  | 'shiny'
+  | 'sniper'
+  | 'stomped'
+  | 'superfast'

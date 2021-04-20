@@ -1,0 +1,73 @@
+{
+  "compilerOptions": {
+    "allowJs": true,
+    "alwaysStrict": true,
+    "allowSyntheticDefaultImports": false,
+    "esModuleInterop": true,
+    "isolatedModules": true,
+    "lib": [ "ESNext", "DOM" ],
+    "module": "CommonJS",
+    "moduleResolution": "node"
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitAny": true,
+    "noImplicitReturns": true,
+    "noImplicitThis": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "outDir": "build",
+    "strict": true,
+    "strictNullChecks": true,
+    "strictFunctionTypes": true,
+    "strictBindCallApply": true,
+    "strictPropertyInitialization": true,
+    "target": "ESNext"
+  },
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "display": "Recommended",
+  "include": [ 
+    "src/**/*",
+    "src/*"
+  ],
+  "exclude": [
+    "node_modules"
+  ],
+  "compileOnSave": true,
+
+  // magnolia
+  "extends": "../../tsconfig.app.json", // syconium app
+  "compilerOptions": {
+    "target": "es2018",
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "types": ["cypress"],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "noEmit": true,
+    "module": "esnext",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "preserve"
+  },
+  "exclude": [
+    "node_modules",
+    "dist",
+    ".next",
+    "out",
+    "next.config.js",
+    "cypress",
+    "src/**/*stories.tsx",
+    "**/*.test.ts",
+    "**/*.test.tsx"
+  ],
+  "include": ["../brunswick/**/*.d.ts", "**/*.d.ts", "**/*.ts", "**/*.tsx"]
+    
+  // magnolia server
+  "extends": "./tsconfig.json", // magnolia
+  "compilerOptions": {
+    "module": "commonjs",
+    "isolatedModules": false,
+    "outDir": "dist",
+    "noEmit": false
+  },
+  "include": ["./src/server.ts", "./src/loadEnvFiles.ts", "./src/logger.ts", "./src/**/*.d.ts", "src/types/adventureland/index.ts"]
+}

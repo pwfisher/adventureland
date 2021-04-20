@@ -1,6 +1,6 @@
 ;(function () {
   /**
-   * Follower
+   * Healer
    *
    * @author Patrick Fisher <patrick@pwfisher.com>
    * @see https://github.com/kaansoral/adventureland
@@ -14,6 +14,7 @@
   let autoAvoidWillAggro = true
   const autoDefend = true
   const autoFollow = true
+  const autoHeal = true
   let autoHostile = false
   const autoKite = !isMeleeType(character)
   const autoLoot = true
@@ -25,6 +26,7 @@
   const autoSquish = true
   const autoStalk = true
   const characterKeys = ['Banger', 'Binger', 'Dinger', 'Finger', 'Hunger', 'Longer', 'Zinger']
+  const injuredAt = 0.8
   let priorityMobTypes = []
   const rangeChunk = character.speed
   const rangeFollow = 10
@@ -74,6 +76,14 @@
 
     if (autoLoot) loot()
     if (autoPotion) usePotion()
+
+    //
+    // HEAL
+    //
+    const injuredList = parent.party_list.map(key => parent.entities[key]).filter(isInjured)
+    if (character.hp < injuredAt * character.max_hp) injuredList.push(character)
+
+    if (autoHeal && injuredList.length && !isOnCooldown('partyheal')) use_skill('partyheal')
 
     //
     // RADAR
@@ -167,6 +177,8 @@
   //
   // FUNCTIONS
   //
+  const isInjured = mob => mob && mob.hp < injuredAt * mob.max_hp && !mob.rip
+
   const followOrStop = () => {
     const map = leaderSmart.moving ? leaderSmart.map : leader?.map
     if (map === 'bank') return
@@ -289,4 +301,4 @@
     if (characterKeys.includes(key)) accept_party_invite(key)
   }
 })()
-// end follower.js
+// end healer.js

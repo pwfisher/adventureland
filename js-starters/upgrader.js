@@ -1,4 +1,4 @@
-(function(){
+;(function () {
   /**
    * Upgrader
    *
@@ -15,6 +15,7 @@
   const autoLoot = false
   const autoParty = false
   const autoPotion = true
+  const autoRespawn = true
   const autoSell = true
   const autoSellMaxLevel = 3
   const autoStand = true
@@ -30,13 +31,28 @@
   const tickDelay = 250
 
   const autoSellTypes = [
-    'bwing', 'beewings',
-    'cape', 'coat', 'coat1',
-    'gloves', 'gloves1', 'gslime',
-    'helmet', 'helmet1',
+    'bwing',
+    'beewings',
+    'cape',
+    'cape1',
+    'cclaw',
+    'crabclaw',
+    'coat',
+    'coat1',
+    'frogt',
+    'gloves',
+    'gloves1',
+    'gslime',
+    'helmet',
+    'helmet1',
     'ijx',
-    'pants', 'pants1',
-    'seashell', 'shadowstone', 'shoes', 'shoes1', 'sword',
+    'pants',
+    'pants1',
+    'shadowstone',
+    'shoes',
+    'shoes1',
+    'spear',
+    'sword',
     'throwingstars',
     'whiteegg',
   ]
@@ -75,22 +91,29 @@
     if (map !== 'bank') {
       if (autoCompound) compoundAny()
       if (autoExchange) exchangeSlot0()
-      if (autoSell) character.items.forEach((item, slot) => {
-        if (autoSellTypes.includes(item?.name) && (item?.level === undefined || item.level <= autoSellMaxLevel)) sell(slot, 9999)
-      })
+      if (autoSell)
+        character.items.forEach((item, slot) => {
+          if (
+            autoSellTypes.includes(item?.name) &&
+            (item?.level === undefined || item.level <= autoSellMaxLevel)
+          )
+            sell(slot, 9999)
+        })
       if (autoLoot) loot()
       if (autoUpgrade && !character.q.upgrade && !isOnCooldown('upgrade')) {
         const upgradeSlot = autoUpgradeableSlot()
         if (upgradeSlot > -1) {
-          const scrollSlot = bagSlot({ type: 'scroll' + item_grade(character.items[upgradeSlot]) }, character.items)
+          const scrollSlot = bagSlot(
+            { type: 'scroll' + item_grade(character.items[upgradeSlot]) },
+            character.items
+          )
           if (scrollSlot) upgrade(upgradeSlot, scrollSlot)
-        }
-        else if (autoUpgradeBuyType && !character.items[0]) buy(autoUpgradeBuyType)
+        } else if (autoUpgradeBuyType && !character.items[0]) buy(autoUpgradeBuyType)
       }
     }
     // alphabetize bank to group compoundables?
     // autoRealmRotate, buy from Ponty ['ringsj', 'intring', 'dexring', 'strring', ...]
-}, tickDelay)
+  }, tickDelay)
 
   //
   // Functions
@@ -106,42 +129,60 @@
     smart_move({ map: 'main', x, y }, () => move(x, y + 1)) // face forward
   }
 
-  const partyUp = () => partyKeys.forEach(key => {
-    if (!get_party()[key]) send_party_invite(key)
-  })
+  const partyUp = () =>
+    partyKeys.forEach(key => {
+      if (!get_party()[key]) send_party_invite(key)
+    })
 
-  const compoundAny = () => character.items.some(item => {
-    if (character.q.compound || isOnCooldown('compound') || !isCompoundableType(item?.name) || bagCount(item, character.items) < 3 || item.level >= autoCompoundLevelMax) return
-    const slots = bagSlots(item, character.items)
-    const scrollSlot = bagSlot({ type: 'cscroll' + item_grade(item) }, character.items)
-    if (scrollSlot > -1) return compound(slots[0], slots[1], slots[2], scrollSlot)
-    else set_message('need cscroll' + item_grade(item))
-  })
+  const compoundAny = () =>
+    character.items.some(item => {
+      if (
+        character.q.compound ||
+        isOnCooldown('compound') ||
+        !isCompoundableType(item?.name) ||
+        bagCount(item, character.items) < 3 ||
+        item.level >= autoCompoundLevelMax
+      )
+        return
+      const slots = bagSlots(item, character.items)
+      const scrollSlot = bagSlot({ type: 'cscroll' + item_grade(item) }, character.items)
+      if (scrollSlot > -1) return compound(slots[0], slots[1], slots[2], scrollSlot)
+      else set_message('need cscroll' + item_grade(item))
+    })
 
   const isNotNull = x => x !== null
 
   const isCompoundableType = type => !!(type && G.items[type].compound)
   const isExchangeableType = type => !!(type && G.items[type]?.e)
-  const isStackableType = type => type && G.items[type]?.s
+  const isStackableType = type => !!(type && G.items[type]?.s)
   const isUpgradeableType = type => !!(type && G.items[type]?.upgrade)
 
-  const isAutoUpgradeableItem = item => isUpgradeableType(item?.name) && item_grade(item) <= autoUpgradeMaxGrade && item.level < autoUpgradeMaxLevel
+  const isAutoUpgradeableItem = item =>
+    isUpgradeableType(item?.name) &&
+    item_grade(item) <= autoUpgradeMaxGrade &&
+    item.level < autoUpgradeMaxLevel
   const autoUpgradeableSlot = () => character.items.findIndex(o => isAutoUpgradeableItem(o))
 
   // A "bag" is character.items or, e.g., character.bank['items0']
   // name or type is required (no filter just by level). Support name or type due to handle data structure inconsistency.
-  const itemFilter = arg => o => o?.name === (arg.name || arg.type) && (arg.level === undefined || o.level === arg.level)
-  const bagCount = (item, bag) => item && Array.isArray(bag) ? bag.filter(itemFilter(item)).reduce((x, o) => x + (o.q || 1), 0) : 0
-  const bankCount = item => bankPackKeys.map(x => bagCount(item, character.bank[x])).reduce((x, o) => x + o, 0)
+  const itemFilter = arg => o =>
+    o?.name === (arg.name || arg.type) && (arg.level === undefined || o.level === arg.level)
+  const bagCount = (item, bag) =>
+    item && Array.isArray(bag)
+      ? bag.filter(itemFilter(item)).reduce((x, o) => x + (o.q || 1), 0)
+      : 0
+  const bankCount = item =>
+    bankPackKeys.map(x => bagCount(item, character.bank[x])).reduce((x, o) => x + o, 0)
   const bagSlot = (item, bag) => bagSlots(item, bag)?.[0]
-  const bagSlots = (arg, bag) => bag.map((o, slot) => itemFilter(arg)(o) ? slot : null).filter(isNotNull)
-  const openSlots = bag => bag.map((o, slot) => o ? null : slot).filter(isNotNull)
+  const bagSlots = (arg, bag) =>
+    bag.map((o, slot) => (itemFilter(arg)(o) ? slot : null)).filter(isNotNull)
+  const openSlots = bag => bag.map((o, slot) => (o ? null : slot)).filter(isNotNull)
 
   const luckPlayersInRange = () => {
     Object.entries(parent.entities)
       .map((_, x) => x)
       .filter(mob => mob.s?.mluck?.f !== character.id)
-      // range: G.skills.mluck.range - 20
+    // range: G.skills.mluck.range - 20
   }
 
   // "radar" caches "radar pings" [{ mob, range }] for performance
