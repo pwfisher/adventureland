@@ -1,4 +1,4 @@
-import { PositionMovable, StatusInfo } from 'alclient'
+import { StatusInfo } from 'alclient'
 import {
   CharacterType,
   DamageType,
@@ -10,11 +10,12 @@ import {
 } from './enum'
 import { ItemInfo } from './ItemInfo'
 import { CharacterKey } from './Character'
+import { PositionRealm } from './PositionRealm'
 
 export type EntityKey = string // in parent.entities
 export type EntityType = 'character' | 'monster'
 
-export type Entity = PositionMovable & {
+export type Entity = PositionRealm & {
   '1hp': number // if set, attacks only do 1 damage
   'aggro'?: number // monster will start shit
   'apiercing': number // armor piercing
@@ -40,8 +41,6 @@ export type Entity = PositionMovable & {
   'name': string // display name
   'npc'?: NPCName
   'range': number
-  'real_x': number
-  'real_y': number
   'resistance': number
   'rip'?: boolean // player is dead
   'rpiercing': number

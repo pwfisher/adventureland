@@ -4,7 +4,7 @@ import { Chest } from './Chest'
 import { DoorInfo } from './DoorInfo'
 import { Entity } from './Entity'
 import {
-  BankPack,
+  BankPackKey,
   CharacterType,
   ConditionType,
   DamageType,
@@ -41,7 +41,7 @@ declare global {
         base_slots: unknown // starting kit. don't care.
         brave: boolean
         courage: number
-        damage_type: 'physical' | 'magical'
+        damage_type: DamageType
         description: string
         doublehand: {
           [T in WeaponType]: StatSet
@@ -108,7 +108,7 @@ declare global {
    * [2]: The cost to unlock this bank pack if you buy with shells
    */
   const bank_packs: {
-    [T in BankPack]: [MapName, number, number]
+    [T in BankPackKey]: [MapName, number, number]
   }
 
   const character: {
@@ -142,7 +142,7 @@ declare global {
    * @param pack destination bank pack
    * @param packSlot index in destination bank pack, defaults to first available
    */
-  function bank_store(slot: number, pack?: BankPack, packSlot?: number): void
+  function bank_store(slot: number, pack?: BankPackKey, packSlot?: number): void
   function bank_withdraw(amount: number): void // from character.bank.gold. must be in bank.
   /**
    * @param key of G.items

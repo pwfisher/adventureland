@@ -1,4 +1,4 @@
-export * from './BankPack'
+export * from './BankPackKey'
 export * from './CharacterType'
 export * from './ConditionType'
 export * from './DamageType'

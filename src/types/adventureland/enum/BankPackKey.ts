@@ -1,4 +1,4 @@
-export type BankPack =
+export type BankPackKey =
   | 'gold'
   | 'items0'
   | 'items1'

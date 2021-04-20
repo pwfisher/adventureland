@@ -1,61 +1,34 @@
-import { ItemInfo, MonsterName, PositionReal, Entity, NPCName, StatusInfo, BankPackType, ItemName, CharacterType, NPCType } from './adventurelandl
+import {
+  BankPackKey,
+  CharacterKey,
+  CharacterType,
+  Entity,
+  EntityKey,
+  ItemInfo,
+  ItemKey,
+  MonsterType,
+  NPCType,
+  PositionRealm,
+  ServerKey,
+  StatusInfo,
+} from './adventureland'
 
-export type MovementTarget = {
-  key?: MonsterName | NPCType | CharacterType
-  position?: PositionReal
-  range?: number
-}
-
-export type MonsterSpawnPosition = PositionReal & {
-  monster: MonsterName
-}
-
-export type EmptyBankSlots = {
-  pack: Exclude<BankPackType, 'gold'>
-  index: number
-}
-
-export type PriorityEntity = {
-  id: string
-  priority: number
-}
-
-export type MonstersInfo = {
-  [T in MonsterName]?: PositionReal & {
-    id: string
-    lastSeen: Date
+export type BagItem = ItemInfo & { bag: BankPackKey | 'inventory'; slot: number }
+export type BagSlot = { bag: Exclude<BankPackKey, 'gold'> | 'inventory'; slot: number }
+export type ItemLevelMap = { [T in ItemKey]?: number }
+export type MobPriority = { key: EntityKey; priority: number }
+export type MobSpawn = PositionReal & { monsterType: MonsterType }
+export type MonsterMap = {
+  [T in ServerKey]?: {
+    [T in MonsterType]?: PositionRealm & { key: EntityKey; lastSeen: Date }
   }
 }
-
-export type NPCInfo = {
-    [T in NPCName]?: PositionReal & {
-        lastSeen: Date;
-    }
+export type NPCMap = {
+  [T in ServerKey]?: {
+    [T in NPCType]?: PositionRealm & { lastSeen: Date }
+  }
 }
-
-export type PartyInfo = {
-    [T in string]?: PositionReal & {
-        lastSeen: Date;
-        shouldSwitchServer: boolean;
-        monsterHuntTargets: MonsterName[];
-        items: InventoryItem[];
-        goldm: number;
-        last_ms: Date;
-        luckm: number;
-        attack: number;
-        frequency: number;
-        s: StatusInfo;
-    }
+export type PlayerMap = {
+  [T in CharacterKey]?: PositionRealm & Partial<Entity> & { lastSeen: Date }
 }
-
-export type PlayersInfo = {
-    [T in string]?: Partial<Entity> & PositionReal & {
-        lastSeen: Date;
-    }
-}
-
-export type ItemLevelMap = { [T in ItemName]?: number }
-
-export type InventoryItem = ItemInfo & { index: number }
-
-export type BankItemInfo = InventoryItem & { pack: BankPackType | 'items' }
+export type Radar = { mob: Entity; range: number }[]
