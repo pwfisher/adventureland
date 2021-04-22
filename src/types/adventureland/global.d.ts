@@ -22,7 +22,7 @@ import {
   WeaponType,
 } from './enum'
 import { GItem, GMapsNPC, GMonster } from './game'
-import { ItemInfo } from './ItemInfo'
+import { Item } from './Item'
 import { StatSet } from './StatSet'
 
 declare global {
@@ -111,7 +111,7 @@ declare global {
     [T in BankPackKey]: [MapName, number, number]
   }
 
-  const character: {
+  const character: Character & {
     /**
      * @see http://adventure.land/docs/code/character/events
      */
@@ -280,13 +280,14 @@ declare global {
   function equip(inventoryPostion: number, slot?: EquipSlot)
   function exchange(inventoryPosition: number)
   function game_log(message: string, color?: string)
+  function get(key: string): Object | string | null
   function get_targeted_monster(): Entity
   function heal(target: Entity)
   /** Checks whether or not we can attack other players */
   function is_pvp(): boolean
   function is_transporting(entity: Entity): boolean
   /** 0 = normal, 1 = high, 2 = rare */
-  function item_grade(item: ItemInfo): -1 | 0 | 1 | 2
+  function item_grade(item: Item): -1 | 0 | 1 | 2
   /** Returns the inventory position of the item, or -1 if it's not found */
   function locate_item(item: ItemKey): number
   /**

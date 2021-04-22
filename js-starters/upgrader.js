@@ -25,7 +25,16 @@
   const autoUpgradeMaxGrade = 1
   const autoUpgradeMaxLevel = 6
   const bankPackKeys = ['items0', 'items1']
-  const characterKeys = ['Banger', 'Binger', 'Dinger', 'Finger', 'Hunger', 'Longer', 'Zinger']
+  const characterKeys = [
+    'Banger',
+    'Binger',
+    'Dinger',
+    'Finger',
+    'Hunger',
+    'Linger',
+    'Longer',
+    'Zinger',
+  ]
   const partyKeys = []
   const rangeRadar = Infinity
   const tickDelay = 250
@@ -39,6 +48,7 @@
     'crabclaw',
     'coat',
     'coat1',
+    'dagger',
     'frogt',
     'gloves',
     'gloves1',
@@ -55,7 +65,7 @@
     'sword',
     'throwingstars',
     'whiteegg',
-  ]
+  ].filter(x => x !== autoUpgradeBuyType)
 
   //
   // STATE

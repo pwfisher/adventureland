@@ -1,4 +1,4 @@
-(function(){
+;(function () {
   /**
    * Attacker
    *
@@ -15,7 +15,16 @@
   const autoPotion = true
   const autoRespawn = true
   const autoStalk = true
-  const characterKeys = ['Binger', 'Dinger', 'Finger', 'Zinger']
+  const characterKeys = [
+    'Banger',
+    'Binger',
+    'Dinger',
+    'Finger',
+    'Hunger',
+    'Linger',
+    'Longer',
+    'Zinger',
+  ]
   const rangeChunk = character.speed
   const rangeRadar = 2000
   const rangeStalk = [character.range * 0.8, character.range]
@@ -63,16 +72,13 @@
     if (autoAttack && lockMob) {
       whichMob = 'lock'
       mobToAttack = nearMob
-    }
-    else if (autoDefend && aggroMob) {
+    } else if (autoDefend && aggroMob) {
       whichMob = 'aggro'
       mobToAttack = lockMob
-    }
-    else if (autoAttack && nearMob) {
+    } else if (autoAttack && nearMob) {
       whichMob = 'near'
       mobToAttack = nearMob
-    }
-    else if (mobToAttack && mobToAttack.dead) {
+    } else if (mobToAttack && mobToAttack.dead) {
       whichMob = null
       mobToAttack = null
     }
@@ -91,7 +97,8 @@
           stop() // in goldilocks zone
           moveDirection = null
         }
-      } else { // not moving
+      } else {
+        // not moving
         if (radarRange(mobToAttack) > character.range) moveToward(mobToAttack, rangeChunk)
         else moveDirection = null
       }
@@ -121,28 +128,26 @@
     }
   }
   const radarRange = mob => radar.find(o => o.mob === mob)?.range
-
+  const minRange = (a, b) => (a.range < b.range ? a : b)
+  const getClosestRadarPing = pings => pings.reduce(minRange, { range: Infinity })?.mob
   const getNearestMonster = args => getClosestRadarPing(getRadarPings(args))
 
-  const getClosestRadarPing = pings => pings.reduce(
-    (x, o) => o.range < x.range ? o : x,
-    { range: Infinity }
-  )?.mob
-
-  const getRadarPings = (args = {}) => radar.filter(({ mob }) => {
-    if (mob.name === 'Target Automatron') return false
-    if (mob.map !== character.map) return
-    if (args.is_juicy && mob.xp > mob.hp * 1.5) return false
-    if (args.mtype && mob.mtype !== args.mtype) return false
-    if (args.min_xp && mob.xp < args.min_xp) return false
-    if (args.min_att && mob.attack < args.min_att) return false
-    if (args.max_att && mob.attack > args.max_att) return false
-    if (args.max_hp && mob.hp > args.max_hp) return false
-    if (args.target && mob.target !== args.target) return false
-    if (args.no_target && mob.target && mob.target !== character.id) return false
-    if (args.path_check && !can_move_to(mob)) return false
-    return true
-  })
+  const getRadarPings = (args = {}) =>
+    radar.filter(({ mob }) => {
+      // if (mob.name === 'Target Automatron') return
+      if (mob.map !== character.map) return
+      if (args.aggro && mob.aggro <= 0.1) return
+      if (args.is_juicy && mob.xp < mob.hp * 2) return
+      if (args.mtype && mob.mtype !== args.mtype) return
+      if (args.min_xp && mob.xp < args.min_xp) return
+      if (args.min_att && mob.attack < args.min_att) return
+      if (args.max_att && mob.attack > args.max_att) return
+      if (args.max_hp && mob.hp > args.max_hp) return
+      if (args.target && mob.target !== args.target) return
+      if (args.no_target && mob.target && mob.target !== character.id) return
+      if (args.path_check && !can_move_to(mob)) return
+      return true
+    })
 
   const moveToward = (point, distance) => {
     if (!can_move_to(point.x, point.y)) return smart_move(point)

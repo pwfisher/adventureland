@@ -1,13 +1,13 @@
 import { ItemKey, StatType } from './enum'
 
-export type ItemInfo = {
+export type Item = {
   b?: boolean // is buying
   level?: number
   name: ItemKey
   q?: number // quantity
   p?:
     | {
-        // placeholder for upgrade, exhange, or compound
+        // placeholder (during upgrade, exchange, or compound, right?)
         chance: number
         name: ItemKey
         level: number

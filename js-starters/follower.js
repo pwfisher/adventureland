@@ -5,7 +5,7 @@
    * @author Patrick Fisher <patrick@pwfisher.com>
    * @see https://github.com/kaansoral/adventureland
    */
-  const isMeleeType = player => ['warrior', 'rogue'].includes(player.ctype)
+  const isMeleeType = player => ['warrior', 'rogue', 'paladin'].includes(player.ctype)
 
   //
   // CONFIG
@@ -24,8 +24,17 @@
   const autoRespawn = true
   const autoSquish = true
   const autoStalk = true
-  const characterKeys = ['Banger', 'Binger', 'Dinger', 'Finger', 'Hunger', 'Longer', 'Zinger']
-  let priorityMobTypes = []
+  const characterKeys = [
+    'Banger',
+    'Binger',
+    'Dinger',
+    'Finger',
+    'Hunger',
+    'Linger',
+    'Longer',
+    'Zinger',
+  ]
+  let priorityMobTypes = ['froggie']
   const rangeChunk = character.speed
   const rangeFollow = 10
   const rangeRadar = Infinity
@@ -103,8 +112,8 @@
     //
     // ATTACK
     //
-    if (priorityMob && autoPriority) whichMob = 'priority'
-    else if (hostileMob && autoHostile) whichMob = 'hostile'
+    if (hostileMob && autoHostile) whichMob = 'hostile'
+    else if (priorityMob && autoPriority) whichMob = 'priority'
     else if (
       lockMob?.visible &&
       iAmTargetOf(lockMob) &&
@@ -120,7 +129,7 @@
     if (
       can_attack(mobToAttack) &&
       (autoMelee ||
-        ['priority', 'hostile', 'lock', 'aggro', 'squishy'].includes(whichMob) ||
+        ['priority', 'hostile', 'leader', 'lock', 'aggro', 'squishy'].includes(whichMob) ||
         radarRange(mobToAttack) > safeRangeFor(mobToAttack))
     ) {
       attack(mobToAttack)
@@ -200,7 +209,7 @@
     }
   }
   const radarRange = mob => radar.find(o => o.mob === mob)?.range
-  const minRange = (x, o) => (o.range < x.range ? o : x)
+  const minRange = (a, b) => (a.range < b.range ? a : b)
   const getClosestRadarPing = pings => pings.reduce(minRange, { range: Infinity })?.mob
   const getNearestMonster = args => getClosestRadarPing(getRadarPings(args))
 
@@ -209,7 +218,7 @@
       // if (mob.name === 'Target Automatron') return
       if (mob.map !== character.map) return
       if (args.aggro && mob.aggro <= 0.1) return
-      if (args.is_juicy && mob.xp > mob.hp * 1.5) return
+      if (args.is_juicy && mob.xp < mob.hp * 2) return
       if (args.mtype && mob.mtype !== args.mtype) return
       if (args.min_xp && mob.xp < args.min_xp) return
       if (args.min_att && mob.attack < args.min_att) return

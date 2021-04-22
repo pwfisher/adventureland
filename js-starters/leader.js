@@ -5,41 +5,58 @@
    * @author Patrick Fisher <patrick@pwfisher.com>
    * @see https://github.com/kaansoral/adventureland
    */
-  const isMeleeType = player => ['warrior', 'rogue'].includes(player.ctype)
+  const isMeleeType = player => ['warrior', 'rogue', 'paladin'].includes(player.ctype)
   const TEMPORARILY_FALSE = false
   const TEMPORARILY_TRUE = true
-
-  const manualMode = false // || TEMPORARILY_TRUE
 
   //
   // CONFIG
   //
-  const autoAttack = true
-  const autoAvoidWillAggro = !manualMode && TEMPORARILY_FALSE
+
+  // master controls
+  let autoMap = ''
+  const autoMelee = isMeleeType(character)
+  const autoMob = ''
+  const manualMode = false || TEMPORARILY_TRUE
+
+  if (TEMPORARILY_FALSE)
+    setInterval(() => {
+      const temp = autoMap
+      autoMap = ''
+      smart_move('bank', () => {
+        bank_deposit(character.gold)
+        bankStoreAll()
+        autoMap = temp
+      })
+    }, 30 * 60 * 1000)
+
+  // ------
+
+  const autoAttack = true // && TEMPORARILY_FALSE
+  const autoAvoidWillAggro = !autoMelee && !manualMode
   const autoDefend = true
   // const autoElixir = true
   const autoHostile = false
-  const autoKite = !isMeleeType(character)
+  const autoKite = !autoMelee
   const autoKitePath = true
   const autoLoot = true
-  const autoMap = ''
-  const autoMelee = isMeleeType(character)
-  const autoMob = ''
   const autoParty = true // && TEMPORARILY_FALSE
   const autoPotion = true
   const autoPriority = true
   const autoRealm = true // && TEMPORARILY_FALSE
   const autoRealmMinutes = 5
   const autoRespawn = true
-  const autoRest = false
+  const autoRest = true
   const autoSquish = true
   const autoStalk = !manualMode
+  const bankPackKeys = Object.keys(bank_packs).filter(x => bank_packs[x][0] === 'bank')
   const characterKeys = ['Banger', 'Binger', 'Dinger', 'Finger', 'Hunger', 'Longer', 'Zinger']
-  const followerKeys = ['Finger', 'Zinger']
+  const followerKeys = ['Finger', 'Binger']
   const healerKeys = ['Hunger']
+  const packSize = 42
   const preyAtkMax = 1000
   const preyXpMin = 300
-  const priorityMobTypes = ['dracul', 'greenjr', 'phoenix', 'wabbit']
+  const priorityMobTypes = ['dracul', 'franky', 'greenjr', 'phoenix', 'wabbit']
   const rangeChunk = character.speed
   const rangeRadar = Infinity
   const rangeStalk = [character.range * 0.8, character.range]
@@ -130,6 +147,13 @@
     if (autoParty) partyUp()
     if (autoPotion) usePotion()
 
+    if (
+      character.hp < character.max_hp &&
+      character.ctype === 'paladin' &&
+      !isOnCooldown('selfheal')
+    )
+      use_skill('selfheal')
+
     //
     // RADAR
     //
@@ -160,17 +184,13 @@
       stop()
     }
     const canSquish =
-      autoSquish &&
-      squishyMob &&
-      is_in_range(squishyMob, 'attack') &&
-      !character.q.attack &&
-      !isOnCooldown('attack')
+      autoSquish && squishyMob && is_in_range(squishyMob, 'attack') && !isOnCooldown('attack')
 
     //
     // ATTACK
     //
-    if (priorityMob && autoPriority) whichMob = 'priority'
-    else if (hostileMob && autoHostile) whichMob = 'hostile'
+    if (hostileMob && autoHostile) whichMob = 'hostile'
+    else if (priorityMob && autoPriority) whichMob = 'priority'
     else if (
       lockMob?.visible &&
       iAmTargetOf(lockMob) &&
@@ -211,49 +231,75 @@
     //
     // MOVEMENT
     //
-    if (autoMap && character.map !== autoMap) smartMove(autoMap)
-    else if (autoMob && !getNearestMonster({ type: autoMob })) smartMove(autoMob)
-    else if (!smart.moving && moveDirection && !hasMoved && moveDirection !== 'escape') {
-      game_log('we look stuck. escape!')
-      const escapeMob = mobToAttack ?? willAggroMob ?? aggroMob
-      if (escapeMob) {
-        moveDirection = 'escape'
-        smartMoveToward(
-          escapeMob,
-          distance(character, escapeMob) + safeRangeFor(escapeMob) + character.speed * 2
-        )
-      }
+    const escapeMob = mobToAttack ?? willAggroMob ?? aggroMob
+
+    if (autoMap && character.map !== autoMap) {
+      console.debug(`MOVE: autoMap, ${autoMap}`)
+      smartMove(autoMap)
+    } else if (autoMob && !getNearestMonster({ type: autoMob })) {
+      console.debug(`MOVE: autoMob, ${autoMob}`)
+      smartMove(autoMob)
     } else if (
+      moveDirection &&
+      !hasMoved &&
+      !smart.moving &&
+      escapeMob &&
+      moveDirection !== 'escape'
+    ) {
+      console.debug(`MOVE: escape, ${escapeMob.mtype}`)
+      moveDirection = 'escape'
+      smartMoveToward(
+        escapeMob,
+        distance(character, escapeMob) + safeRangeFor(escapeMob) + character.speed * 2
+      )
+    } else if (
+      autoKite &&
+      !autoMelee &&
       aggroMob &&
-      (kitingMob || autoKite) &&
       canKite(aggroMob) &&
       radarRange(aggroMob) <= safeRangeFor(aggroMob)
-    )
+    ) {
+      console.debug(`MOVE: kite, ${aggroMob.mtype}`)
       kite(aggroMob)
-    else if (
+    } else if (
       autoAvoidWillAggro &&
+      !autoMelee &&
       willAggroMob &&
-      radarRange(willAggroMob) <= safeRangeFor(willAggroMob) &&
-      (!autoMelee || willAggroMob !== mobToAttack)
-    )
+      radarRange(willAggroMob) <= safeRangeFor(willAggroMob)
+    ) {
+      console.debug(`MOVE: avoid, ${willAggroMob.mtype}`)
       moveToward(willAggroMob, -rangeChunk)
-    else if (autoStalk && mobToAttack && whichMob !== 'squishy') {
+    } else if (autoStalk && mobToAttack && whichMob !== 'squishy') {
       if (
-        (moveDirection === 'in' &&
-          radarRange(mobToAttack) <= Math.max(rangeStalk[1], safeRangeFor(mobToAttack))) ||
-        (moveDirection === 'out' &&
-          radarRange(mobToAttack) >= Math.max(rangeStalk[0], safeRangeFor(mobToAttack)))
+        !autoMelee &&
+        moveDirection === 'in' &&
+        radarRange(mobToAttack) <= Math.max(rangeStalk[1], safeRangeFor(mobToAttack))
       ) {
+        console.debug(`MOVE: stalk in, stop, ${mobToAttack.mtype}`)
+        stop() // in goldilocks zone
+        moveDirection = null
+      } else if (
+        moveDirection === 'out' &&
+        radarRange(mobToAttack) >= Math.max(rangeStalk[0], safeRangeFor(mobToAttack))
+      ) {
+        console.debug(`MOVE: stalk out, stop, ${mobToAttack.mtype}`)
         stop() // in goldilocks zone
         moveDirection = null
       } else if (
         autoKite &&
+        !autoMelee &&
         canKite(mobToAttack) &&
         radarRange(mobToAttack) <= safeRangeFor(mobToAttack)
-      )
+      ) {
+        console.debug(`MOVE: stalk out, start, ${mobToAttack.mtype}`)
         moveToward(mobToAttack, -rangeChunk)
-      else if (radarRange(mobToAttack) > character.range) moveToward(mobToAttack, rangeChunk)
-      else moveDirection = null
+      } else if (radarRange(mobToAttack) > character.range) {
+        console.debug(`MOVE: stalk in, start, ${mobToAttack.mtype}`)
+        moveToward(mobToAttack, rangeChunk)
+      } else {
+        // no autoMove (free manual control) within Goldilocks stalking range
+        moveDirection = null
+      }
     } else moveDirection = null
 
     //
@@ -317,12 +363,14 @@
     }
   }
   const radarRange = mob => radar.find(o => o.mob === mob)?.range
-  const minRange = (x, o) => (o.range < x.range ? o : x)
+  const minRange = (a, b) => (a.range < b.range ? a : b)
   const getClosestRadarPing = pings => pings.reduce(minRange, { range: Infinity })?.mob
+  const getNearestMonster = args => getClosestRadarPing(getRadarPings(args))
+  const getNearestHostile = _args => null // todo
 
   const getRadarPings = (args = {}) =>
     radar.filter(({ mob }) => {
-      if (mob.name === 'Target Automatron') return
+      // if (mob.name === 'Target Automatron') return
       if (mob.map !== character.map) return
       if (args.aggro && mob.aggro <= 0.1) return
       if (args.is_juicy && mob.xp < mob.hp * 2) return
@@ -337,12 +385,8 @@
       return true
     })
 
-  const getNearestMonster = args => getClosestRadarPing(getRadarPings(args))
-
   const getPriorityMob = () =>
     priorityMobTypes.map(type => getRadarPings({ type })).reduce(minRange, { range: Infinity })?.mob
-
-  const getNearestHostile = args => null // todo
 
   const iAmTargetOf = mob => mob?.target === character.id
   const isSafePrey = mob => mob.speed < character.speed - 1 && !mob.dreturn
@@ -351,9 +395,10 @@
     if (mob.map !== undefined && mob.map !== character.map) return
     if (!can_move_to(mob.x, mob.y)) return smartMove(mob)
     const [x, y] = unitVector(character, mob)
-    const safeDistance = radarRange(mob)
-      ? Math.min(distance, radarRange(mob) - safeRangeFor(mob) - character.speed)
-      : distance
+    const safeDistance =
+      radarRange(mob) && !autoMelee
+        ? Math.min(distance, radarRange(mob) - safeRangeFor(mob) - character.speed)
+        : distance
     move(character.x + x * safeDistance, character.y + y * safeDistance)
     moveDirection = distance > 0 ? 'in' : 'out'
   }
@@ -435,6 +480,79 @@
     const server = servers[Math.floor(Math.random() * servers.length)].split('-')
     change_server(server[0], server[1])
   }
+
+  const bagSlot = (item, bag) => bagSlots(item, bag)?.[0]
+  const bagSlots = (arg, bag) =>
+    bag.map((o, slot) => (itemFilter(arg)(o) ? slot : null)).filter(isNotNull)
+  const bankPack = x => (character.bank || {})[x] ?? []
+
+  const bankStore = ({ name, type, level }) => {
+    if (!character.bank) return
+    character.items.forEach((o, slot) => {
+      if (o?.name !== (name || type)) return
+      if (level !== undefined && o?.level !== level) return
+      bankStoreItem(o, slot)
+    })
+  }
+
+  const bankStoreAll = () => character.items.forEach(bankStoreItem)
+
+  const bankStoreItem = (item, slot) => {
+    if (!item) return
+    let stacked = false
+    if (isStackableType(item.name)) {
+      bankPackKeys.some(packKey => {
+        if (!character.bank[packKey]) return
+        const packSlot = bagSlot(item, bankPack(packKey))
+        if (packSlot && can_stack(item, bankPack(packKey)[packSlot])) {
+          console.log(`stacking ${item.name}`)
+          let openPackSlot = openSlotInBankPack(packKey)
+          console.log(`openSlotInBankPack('${packKey}')`, openPackSlot)
+          if (openPackSlot) {
+            bank_store(slot, packKey, openPackSlot)
+            parent.socket.emit('bank', {
+              operation: 'move',
+              pack: packKey,
+              a: openPackSlot,
+              b: packSlot,
+            })
+            stacked = true
+            return true
+          } // else
+          const openSlot = openSlots(character.items)[0]
+          if (openSlot > -1) {
+            console.log(`can’t stack in full pack, but can swap to open slot`)
+            const swapSlot = (packSlot + 1) % packSize
+            bank_retrieve(packKey, swapSlot, openSlot)
+            bank_store(slot, packKey, swapSlot)
+            parent.socket.emit('bank', {
+              operation: 'move',
+              pack: packKey,
+              a: swapSlot,
+              b: packSlot,
+            })
+            bank_store(openSlot, packKey, swapSlot)
+            stacked = true
+            return true
+          } else {
+            game_log('stack failed: need open slot in bank or inventory')
+          }
+        }
+      })
+    }
+    if (!stacked) {
+      const packKey = getPackWithSpace()
+      if (packKey) bank_store(slot, packKey)
+    }
+  }
+
+  const getPackWithSpace = () => bankPackKeys.find(openSlotInBankPack)
+  const isNotNull = x => x !== null
+  const isNull = x => x === null
+  const isStackableType = type => type && G.items[type]?.s
+  const itemFilter = arg => o =>
+    o?.name === (arg.name || arg.type) && (arg.level === undefined || o.level === arg.level)
+  const openSlotInBankPack = key => bankPack(key).find(isNull)
 
   //
   // HOOKS

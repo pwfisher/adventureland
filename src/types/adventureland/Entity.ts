@@ -8,7 +8,7 @@ import {
   NPCType,
   TradeSlot,
 } from './enum'
-import { ItemInfo } from './ItemInfo'
+import { Item } from './Item'
 import { CharacterKey } from './Character'
 import { PositionRealm } from './PositionRealm'
 
@@ -46,10 +46,10 @@ export type Entity = PositionRealm & {
   'rpiercing': number
   's': StatusInfo
   'slots'?: {
-    [T in EquipSlot]: ItemInfo
+    [T in EquipSlot]: Item
   } &
     {
-      [T in TradeSlot]?: ItemInfo & {
+      [T in TradeSlot]?: Item & {
         giveaway?: number // minutes remaining
         list: CharacterKey[] // in giveaway
         price: number

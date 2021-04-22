@@ -4,10 +4,11 @@
     "alwaysStrict": true,
     "allowSyntheticDefaultImports": false,
     "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
     "isolatedModules": true,
-    "lib": [ "ESNext", "DOM" ],
     "module": "CommonJS",
-    "moduleResolution": "node"
+    "moduleResolution": "node",
+    "noEmit": false,
     "noFallthroughCasesInSwitch": true,
     "noImplicitAny": true,
     "noImplicitReturns": true,
@@ -15,6 +16,7 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "outDir": "build",
+    "resolveJsonModule": true,
     "strict": true,
     "strictNullChecks": true,
     "strictFunctionTypes": true,
@@ -24,50 +26,14 @@
   },
   "$schema": "https://json.schemastore.org/tsconfig",
   "display": "Recommended",
-  "include": [ 
-    "src/**/*",
-    "src/*"
+  "include": [
+    "src/**/*.d.ts",
+    "src/**/*.ts"
   ],
   "exclude": [
-    "node_modules"
-  ],
-  "compileOnSave": true,
-
-  // magnolia
-  "extends": "../../tsconfig.app.json", // syconium app
-  "compilerOptions": {
-    "target": "es2018",
-    "lib": ["dom", "dom.iterable", "esnext"],
-    "types": ["cypress"],
-    "allowJs": true,
-    "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true,
-    "noEmit": true,
-    "module": "esnext",
-    "resolveJsonModule": true,
-    "isolatedModules": true,
-    "jsx": "preserve"
-  },
-  "exclude": [
+    "build",
     "node_modules",
-    "dist",
-    ".next",
-    "out",
-    "next.config.js",
-    "cypress",
-    "src/**/*stories.tsx",
-    "**/*.test.ts",
-    "**/*.test.tsx"
+    "**/*.test.ts"
   ],
-  "include": ["../brunswick/**/*.d.ts", "**/*.d.ts", "**/*.ts", "**/*.tsx"]
-    
-  // magnolia server
-  "extends": "./tsconfig.json", // magnolia
-  "compilerOptions": {
-    "module": "commonjs",
-    "isolatedModules": false,
-    "outDir": "dist",
-    "noEmit": false
-  },
-  "include": ["./src/server.ts", "./src/loadEnvFiles.ts", "./src/logger.ts", "./src/**/*.d.ts", "src/types/adventureland/index.ts"]
+  "compileOnSave": true
 }
