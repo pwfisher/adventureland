@@ -10,7 +10,7 @@
     "build": "npx webpack --config ./webpack.config.js && tsc",
     "restart": "forever restart build/server.js",
     "start": "forever start -o logs/out.log -e logs/err.log build/server.js --color",
-    "stop":  "forever stop build/server.js",
+    "stop": "forever stop build/server.js",
     "test": "jest"
   },
   "repository": {
@@ -37,6 +37,7 @@
     "@types/express": "^4.17.8",
     "@types/nconf": "^0.10.0",
     "@types/node": "^14.11.1",
+    "@types/pixi.js": "^5.0.0",
     "@types/socket.io": "^2.1.11",
     "@typescript-eslint/eslint-plugin": "^4.1.1",
     "@typescript-eslint/parser": "^4.1.1",

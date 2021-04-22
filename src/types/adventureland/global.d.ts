@@ -27,10 +27,10 @@ import { StatSet } from './StatSet'
 
 declare global {
   interface Window {
-    close_merchant()
+    close_merchant(): void
     distance(from: IPosition | PositionReal, to: IPosition | PositionReal): number
-    exchange(slot: number)
-    open_merchant(slot: number)
+    exchange(slot: number): void
+    open_merchant(slot: number): void
 
     character: Character
     chests: { [id: string]: Chest }
@@ -276,7 +276,7 @@ declare global {
   function damage_multiplier(difference: number): number
   function distance(from: IPosition | PositionReal, to: IPosition | PositionReal): number
   /** Draws a circle on the map */
-  function draw_circle(x: number, y: number, radius: number, size: number, color: number)
+  function draw_circle(x: number, y: number, radius: number, size: number, color: number) PIXI.Graphics | void
   function equip(inventoryPostion: number, slot?: EquipSlot)
   function exchange(inventoryPosition: number)
   function game_log(message: string, color?: string)
