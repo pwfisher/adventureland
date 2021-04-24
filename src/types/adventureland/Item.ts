@@ -1,13 +1,15 @@
 import { ItemKey, StatType } from './enum'
 
+/**
+ * Placeholder item holds slot (and animates) during upgrade, exchange, or compound.
+ */
 export type Item = {
-  b?: boolean // is buying
+  b?: boolean // buying
   level?: number
   name: ItemKey
   q?: number // quantity
-  p?:
+  p?: // placeholder
     | {
-        // placeholder (during upgrade, exchange, or compound, right?)
         chance: number
         name: ItemKey
         level: number
@@ -17,6 +19,6 @@ export type Item = {
     | 'shiny'
     | 'glitched'
     | 'superfast'
-  rid?: string // anti-theft sale id
+  rid?: string // anti-theft
   stat_type?: StatType
 }

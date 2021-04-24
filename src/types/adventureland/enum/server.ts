@@ -9,4 +9,4 @@ export type ServerKey =
   | 'ASIA-I'
 
 export type ServerIdentifier = 'I' | 'II' | 'III' | 'PVP'
-export type ServerRegion = 'ASIA' | 'EU' | 'US'
+export type ServerRegion = 'ASIA' | 'EU' | 'US' // key of window.server_names

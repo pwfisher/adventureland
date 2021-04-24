@@ -18,6 +18,8 @@ import {
   ServerIdentifier,
   ServerRegion,
   SkillKey,
+  SkillType,
+  SkinKey,
   StatType,
   TradeSlot,
   WeaponType,
@@ -163,47 +165,47 @@ declare global {
   /**
    * Checks if the you can move from `[position.x, position.y] to [position.going_x, position.going_y]
    * @param entity The position you want to check is movable
-   * @returns TRUE if you can move there, FALSE otherwise
+   * @returns true if you can move there, false otherwise
    */
   function can_move(position: PositionMovable & { base: any }): boolean
   /**
    * Checks if you can move your character to the given destination on your current map
    * @param destination A position object containing the destination coordinates
-   * @returns TRUE if you can move there, FALSE otherwise
+   * @returns true if you can move there, false otherwise
    */
   function can_move_to(destination: { real_x: number; real_y: number }): boolean
   /**
    * Checks if you can move your character to the given destination on your current map
    * @param x The x-coordinate that you want to move to
    * @param y The y-coordinate that you want to move to
-   * @returns TRUE if you can move there, FALSE otherwise
+   * @returns true if you can move there, false otherwise
    */
   function can_move_to(x: number, y: number): boolean
   /**
    * Checks if the given entity can transport. If given your own character, it will also check if you are already transporting
    * @param entity The entity to check
-   * @returns TRUE if you are not currently transporting, and can transport, FALSE otherwise
+   * @returns true if you are not currently transporting, and can transport, false otherwise
    */
   function can_transport(entity: Entity): boolean
   /**
    * Checks if the skill is usable by the given character. Also checks if the given skill is on cooldown.
    * @param skill The skill to check
-   * @param returns TRUE if not on cooldown, FALSE otherwise.
+   * @param returns true if not on cooldown, false otherwise.
    */
   function can_use(skill: SkillKey): boolean
   /**
    * Checks if you can use the given door from the given position
-   * @param map A given map (from `G.maps`)
-   * @param door The given door (from `G.maps[map].doors`)
+   * @param mapKey of G.maps
+   * @param doorInfo of given map, G.maps[map].doors
    * @param x The x position on the map
    * @param y The y position on the map
-   * @returns TRUE if the door can be used from the given position, FALSE otherwise
+   * @returns true if the door can be used from the given position, false otherwise
    */
-  function can_use_door(map: MapKey, door: DoorInfo, x: number, y: number): boolean
+  function can_use_door(mapKey: MapKey, doorInfo: DoorInfo, x: number, y: number): boolean
   /**
    * Checks if the given entity can walk (i.e. move). If given your own character, it will also check if you are already transporting.
    * @param entity The entity to check
-   * @returns TRUE if you are not currently transporting, and can walk, FALSE otherwise
+   * @returns true if you are not currently transporting, and can walk, false otherwise
    */
   function can_walk(entity: Entity): boolean
   /**
@@ -326,10 +328,8 @@ declare global {
   function start_character(name: string, codeName?: string): unknown
   function stop(action?: string): unknown
   function stop_character(name: string): unknown
-  /** Swap the position of two items in the player's inventory */
-  function swap(index1: number, index2: number): unknown
-  /** For buying things off players' merchants */
-  function trade_buy(target: Entity, trade_slot: number): unknown
+  function swap(slotA: number, slotB: number): unknown // inventory
+  function trade_buy(target: Entity, trade_slot: number): unknown // player merchant
   function transport(map: MapKey, spawn?: number): unknown
   function unequip(slot: EquipSlot | TradeSlot): unknown
   function upgrade(
@@ -338,8 +338,7 @@ declare global {
     offeringInventoryPosition?: number
   ): Promise<unknown>
   function use_skill(name: '3shot' | '5shot', targets: Entity[]): Promise<unknown>[]
-  /** For destination, it's an array of [x, y] */
-  function use_skill(name: 'blink', destination: [number, number]): unknown
+  function use_skill(name: 'blink', destination: [number, number]): unknown // destination: [x, y]
   /** The string is the ID of the target, the number is how much mana to spend on the attack */
   function use_skill(name: 'cburst', targets: [string, number][]): Promise<unknown>
   function use_skill(name: 'energize', target: Entity, mp: number): Promise<unknown>
@@ -358,7 +357,7 @@ declare global {
 
   /** Contains information about smart_move() */
   let smart: IPosition & {
-    /** If searching and false, we are still searching. If  */
+    /** If searching and false, we are still searching. */
     found: boolean
     /** If .moving == true, we are moving or searching */
     moving: boolean
@@ -372,47 +371,22 @@ declare global {
   }
 
   let G: {
-    base_gold: {
-      [T in MonsterType]?: {
-        /** The base amount of gold this monster drops if you kill it in the given map */
-        [T in MapKey]?: number
-      }
-    }
+    /** The base amount of gold this monster drops if you kill it in the given map */
+    base_gold: { [T in MonsterType]?: { [T in MapKey]?: number } }
     classes: {
       [T in CharacterType]: {
         damage_type: DamageType
-        /** A list of items that the character can equip using both hands */
-        doublehand: {
-          [T in WeaponType]?: {
-            /** Modifier on the given stat for equipping this type of item */
-            [T in StatType]?: number
-          }
-        }
-        /** A list of items that the character can equip in its mainhand */
-        mainhand: {
-          [T in WeaponType]?: {
-            /** Modifier on the given stat for equipping this type of item */
-            [T in StatType]?: number
-          }
-        }
-        /** A list of items that the character can equip in its offhand */
-        offhand: {
-          [T in WeaponType]?: {
-            /** Modifier on the given stat for equipping this type of item */
-            [T in StatType]?: number
-          }
-        }
+        /** Modifier on the given stat for equipping this type of item */
+        doublehand: { [T in WeaponType]?: StatSet }
+        mainhand: { [T in WeaponType]?: StatSet }
+        offhand: { [T in WeaponType]?: StatSet }
       }
     }
     conditions: {
-      [T in ConditionType]: {
-        /** Indicates whether the condition is a penalty or not */
-        bad: boolean
+      [T in ConditionType]: StatSet & {
+        bad: boolean // is a penalty
         buff: boolean
-        /** The length the condition lasts in ms */
-        duration: number
-      } & {
-        [T in StatType]?: number
+        duration: number // in ms
       }
     }
     dismantle: {
@@ -439,8 +413,7 @@ declare global {
     maps: {
       [T in MapKey]: {
         doors: DoorInfo[]
-        /** The name of the map, if this changes, the map layout probably changed. */
-        key: string
+        key: string // The name of the map, if this changes, the map layout probably changed.
         ignore?: boolean
         instance?: boolean
         irregular?: boolean
@@ -450,8 +423,7 @@ declare global {
           boundaries?: [MapKey, number, number, number, number][]
           type: MonsterType
         }[]
-        /** Not sure what this means. Might mean that only one character of the players can be here at a time. */
-        mount: boolean
+        mount: boolean // ?
         no_bounds?: boolean
         npcs: GMapsNPC[]
         on_death: number
@@ -462,12 +434,7 @@ declare global {
             id: string
           }
         }
-        /**
-         * [0]: x position where you spawn
-         * [1]: y position where you spawn
-         * [2]: Direction to face the character when you spawn
-         */
-        spawns: [number, number, number?][]
+        spawns: [number, number, number?][] // [x, y, dir], dir is direction entity faces
       }
     }
     monsters: { [T in MonsterType]: GMonster }
@@ -493,30 +460,26 @@ declare global {
       [T in SkillKey]: {
         apiercing?: number
         class?: CharacterType[]
+        consume: ItemKey
         cooldown: number
         cooldown_multiplier?: number
         damage_multiplier?: number
-        level?: number
-        /** Can we use this skill on monsters? */
-        monster?: boolean
-        /** MP Cost for skill */
-        mp?: number
-        /** The name of the skill */
+        explanation: string
+        hostile: boolean // ?
+        level?: number // character level required
+        monster?: boolean // usable on monster
+        mp?: number // mana cost
         name: string
         range?: number
         range_multiplier?: number
-        /** For MP use skills on the mage, 1 mp will equal this much damage */
-        ratio?: number
-        /** The cooldown this skill shares with another skill */
-        share?: SkillKey
-        /** The item(s) required to use this skill */
-        slot?: [EquipSlot, ItemKey][]
-        /** Does this skill require a single target? (Don't use an array) */
-        target?: boolean
-        /** Does this skill require multiple targets? (Use an array) */
-        targets?: boolean
-        /** The weapon type needed to use this skill */
-        wtype?: WeaponType | WeaponType[]
+        ratio?: number // e.g. damage per mp
+        share?: SkillKey // cooldown key
+        skin: SkinKey
+        slot?: [EquipSlot, ItemKey][] // equipment required
+        target?: boolean // takes single target
+        targets?: boolean // takes array of targets
+        type: SkillType
+        wtype?: WeaponType | WeaponType[] // weapon required
       }
     }
   }
