@@ -18,27 +18,35 @@ export const autoAttack = true // && TEMPORARILY_FALSE
 export const autoAvoidWillAggro = !autoMelee && !manualMode
 export const autoDefend = true
 export const autoFollow = true
-export const autoHostile = false
+export const autoHostile = true
 export const autoKite = !autoMelee
 export const autoKitePath = true
 export const autoLoot = true
 export const autoParty = true // && TEMPORARILY_FALSE
 export const autoPotion = true
-export const autoPriority = false
+export const autoPriority = true
 export const autoRealm = true // && TEMPORARILY_FALSE
 export const autoRealmMinutes = 5
 export const autoRespawn = true
 export const autoRest = true
 export const autoSquish = true
 export const autoStalk = !manualMode
-export const characterKeys = ['Banger', 'Binger', 'Dinger', 'Finger', 'Hunger', 'Longer', 'Zinger']
-export const partyKeys = ['Hunger', 'Finger', 'Binger'].filter(x => x !== character.id).slice(0, 2)
+export const characterKeys = [
+  'Banger',
+  'Binger',
+  'Dinger',
+  'Finger',
+  'Hunger',
+  'Linger',
+  'Longer',
+  'Winger',
+  'Zinger',
+]
+export const partyKeys = ['Hunger', 'Finger', 'Zinger'].filter(x => x !== character.id).slice(0, 2)
 export const preyAtkMax = 1000
 export const preyXpMin = 300
 export const priorityMobTypes = ['dracul', 'franky', 'froggie', 'greenjr', 'phoenix', 'wabbit']
-export const rangeChunk = character.speed
 export const rangeFollow = 10
-export const rangeRadar = Infinity
 export const rangeStalk = [character.range * 0.8, character.range]
 export const tickDelay = 250
 export const timeStartup = 4000

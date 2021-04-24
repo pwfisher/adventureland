@@ -23,10 +23,11 @@
     'Hunger',
     'Linger',
     'Longer',
+    'Winger',
     'Zinger',
   ]
   const rangeChunk = character.speed
-  const rangeRadar = 2000
+  const rangeRadar = Infinity
   const rangeStalk = [character.range * 0.8, character.range]
   const tickDelay = 250
   const uiBlank = '--'
@@ -51,10 +52,12 @@
   //
   setInterval(tick, tickDelay)
   function tick() {
-    if (character.rip) {
-      if (autoRespawn) respawn()
-      return resetState()
-    }
+    const { id, rip } = character
+
+    if (rip && autoRespawn && radar.length) respawn()
+    if (rip || smart.moving) resetState()
+    if (rip) return
+
     if (autoLoot) loot()
     if (autoPotion) use_hp_or_mp()
 
@@ -63,7 +66,7 @@
     //
     updateRadar()
     const lockMob = get_targeted_monster()
-    const aggroMob = getNearestMonster({ target: character.id, min_att: 1 })
+    const aggroMob = getNearestMonster({ target: id, min_att: 1 })
     const nearMob = getNearestMonster()
 
     //
@@ -105,12 +108,12 @@
     }
 
     //
-    // UPDATE UI
+    // UPDATE
     //
     const uiRange = radarRange(mobToAttack) ? Math.round(radarRange(mobToAttack)) : uiBlank
-    const uiWhich = 'lock'
     const uiDir = moveDirection || uiBlank
-    set_message(`${uiRange} ${uiWhich} ${uiDir}`)
+    set_message(`${uiRange} atkr ${uiDir}`)
+    set(`${character.id}:items`, character.items)
   }
 
   //

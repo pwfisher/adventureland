@@ -19,23 +19,14 @@
   const autoMob = ''
   const manualMode = false // || TEMPORARILY_TRUE
 
-  if (TEMPORARILY_FALSE)
-    setInterval(() => {
-      const temp = autoMap
-      autoMap = ''
-      smart_move('bank', () => {
-        bank_deposit(character.gold)
-        bankStoreAll()
-        autoMap = temp
-      })
-    }, 30 * 60 * 1000)
-
   // ------
 
   const autoAttack = true // && TEMPORARILY_FALSE
   const autoAvoidWillAggro = !autoMelee && !manualMode
+  const autoCourier = true
   const autoDefend = true
   const autoElixir = true
+  const autoHeal = true
   const autoHostile = false
   const autoKite = !autoMelee
   const autoKitePath = true
@@ -49,15 +40,25 @@
   const autoRest = true
   const autoSquish = true
   const autoStalk = !manualMode
-  const characterKeys = ['Banger', 'Binger', 'Dinger', 'Finger', 'Hunger', 'Longer', 'Zinger']
-  const followerKeys = ['Finger', 'Binger']
-  const healerKeys = ['Hunger']
-  const packSize = 42
+  const characterKeys = [
+    'Banger',
+    'Binger',
+    'Dinger',
+    'Finger',
+    'Hunger',
+    'Linger',
+    'Longer',
+    'Winger',
+    'Zinger',
+  ]
+  const injuredAt = 0.99
+  const partyKeys = ['Hunger', 'Finger', 'Zinger'].filter(x => x !== character.id).slice(0, 2)
   const preyAtkMax = 1000
   const preyXpMin = 300
-  const priorityMobTypes = ['dracul', 'franky', 'greenjr', 'phoenix', 'wabbit']
-  const rangeChunk = character.speed
+  const priorityMobTypes = ['dracul', 'franky', 'froggie', 'greenjr', 'phoenix', 'wabbit']
+  const rangeChunk = 50
   const rangeRadar = Infinity
+  const rangeSendItem = 200 // ?
   const rangeStalk = [character.range * 0.8, character.range]
   const tickDelay = 250
   const timeStartup = 4000
@@ -67,9 +68,6 @@
   // const kitePaths: Record<MapKey, KitePath[]>
   // i.e. { cave: [ { x: 300, y: 475 }, ... ] }
   load_code('kitePaths')
-
-  // computed config
-  const partyKeys = [...healerKeys, ...followerKeys].filter(x => x !== character.id).slice(0, 2)
 
   // update config in local storage
   set('follower-config', {
@@ -113,8 +111,8 @@
   //
   if (autoParty) startParty()
   if (autoRealm) {
-    setInterval(randomServer, autoRealmMinutes * 60 * 1000)
-    setInterval(() => game_log('Realm hop in 60 seconds'), (autoRealmMinutes - 1) * 60 * 1000)
+    setTimeout(changeServer, autoRealmMinutes * 60 * 1000)
+    setTimeout(() => game_log('Realm hop in 60 seconds'), (autoRealmMinutes - 1) * 60 * 1000)
   }
 
   ;({ character: previousLeader } = get('leader-state') ?? {})
@@ -133,26 +131,27 @@
     const { character: characterLast } = get('leader-state') ?? {}
     hasMoved =
       character.real_x !== characterLast?.real_x || character.real_y !== characterLast?.real_y
+    const { ctype, hp, max_hp, rip } = character
 
     if (characterLast.id !== character.id) return game_log(`Extra leader: ${character.id}`)
 
-    if (character.rip) {
-      if (autoRespawn) respawn()
-      return resetState()
-    }
-    if (smart.moving && moveDirection !== 'escape') resetState()
+    if (rip && autoRespawn && radar.length) respawn()
+    if (rip || (smart.moving && moveDirection !== 'escape')) resetState()
+    if (rip) return
 
+    if (autoCourier) useCourier()
     if (autoElixir) useElixir()
     if (autoLoot) loot()
     if (autoParty) partyUp()
     if (autoPotion) usePotion()
 
-    if (
-      character.hp < character.max_hp &&
-      character.ctype === 'paladin' &&
-      !isOnCooldown('selfheal')
-    )
-      use_skill('selfheal')
+    //
+    // HEAL
+    //
+    if (hp < max_hp && ctype === 'paladin' && !isOnCooldown('selfheal')) use_skill('selfheal')
+    const injuredList = parent.party_list.map(key => parent.entities[key]).filter(isInjured)
+    if (isInjured(character)) injuredList.push(character)
+    if (autoHeal && injuredList.length && !isOnCooldown('partyheal')) use_skill('partyheal')
 
     //
     // RADAR
@@ -314,11 +313,14 @@
     if (character.xp < characterLast.xp) game_log(`Lost ${characterLast.xp - character.xp} xp`)
 
     setLeaderState()
+    set(`${character.id}:items`, character.items)
   }
 
   //
   // FUNCTIONS
   //
+  const isInjured = mob => mob && mob.hp < injuredAt * mob.max_hp && !mob.rip
+
   const canKite = mob => character.speed > mob.speed && character.range > mob.range
 
   const kite = mob => {
@@ -356,7 +358,7 @@
     radar = []
     for (id in parent.entities) {
       const mob = parent.entities[id]
-      if (mob.type !== 'monster' || !mob.visible || mob.dead) continue
+      if (!mob.visible || mob.dead || mob.rip) continue
       const range = distance(character, mob)
       if (range > rangeRadar) continue
       radar.push({ mob, range })
@@ -365,30 +367,40 @@
   const radarRange = mob => radar.find(o => o.mob === mob)?.range
   const minRange = (a, b) => (a.range < b.range ? a : b)
   const getClosestRadarPing = pings => pings.reduce(minRange, { range: Infinity })?.mob
-  const getNearestMonster = args => getClosestRadarPing(getRadarPings(args))
-  const getNearestHostile = _args => null // todo
+  const getNearestMonster = props => getClosestRadarPing(getRadarPings({ ...props }))
+  const getNearestHostile = props => getClosestRadarPing(getRadarPings({ ...props, player: true }))
 
-  const getRadarPings = (args = {}) =>
+  const getRadarPings = (props = {}) =>
     radar.filter(({ mob }) => {
       // if (mob.name === 'Target Automatron') return
       if (mob.map !== character.map) return
-      if (args.aggro && mob.aggro <= 0.1) return
-      if (args.is_juicy && mob.xp < mob.hp * 2) return
-      if (args.mtype && mob.mtype !== args.mtype) return
-      if (args.min_xp && mob.xp < args.min_xp) return
-      if (args.min_att && mob.attack < args.min_att) return
-      if (args.max_att && mob.attack > args.max_att) return
-      if (args.max_hp && mob.hp > args.max_hp) return
-      if (args.target && mob.target !== args.target) return
-      if (args.no_target && mob.target && mob.target !== character.id) return
-      if (args.path_check && !can_move_to(mob)) return
+      if (props.aggro && mob.aggro <= 0.1) return
+      if (props.is_juicy && mob.xp < mob.hp * 2) return
+      if (props.mtype && mob.mtype !== props.mtype) return
+      if (props.min_xp && mob.xp < props.min_xp) return
+      if (props.min_att && mob.attack < props.min_att) return
+      if (props.max_att && mob.attack > props.max_att) return
+      if (props.max_hp && mob.hp > props.max_hp) return
+      if (props.player && !isHostilePlayer(mob)) return
+      if (!props.player && mob.type !== 'monster') return
+      if (props.target && mob.target !== props.target) return
+      if (props.no_target && mob.target && mob.target !== character.id) return
+      if (props.path_check && !can_move_to(mob)) return
       return true
     })
 
   const getPriorityMob = () =>
-    priorityMobTypes.map(type => getRadarPings({ type })).reduce(minRange, { range: Infinity })?.mob
+    priorityMobTypes
+      .map(mtype => getRadarPings({ mtype }).reduce(minRange, { range: Infinity }))
+      .reduce(minRange, { range: Infinity }).mob
 
   const iAmTargetOf = mob => mob?.target === character.id
+
+  const isHostilePlayer = mob =>
+    !characterKeys.includes(mob.id) &&
+    !characterKeys.includes(mob.party) &&
+    (mob.map === 'arena' || parent.server_identifier === 'PVP')
+
   const isSafePrey = mob => mob.speed < character.speed - 1 && !mob.dreturn
 
   const moveToward = (mob, distance) => {
@@ -436,7 +448,7 @@
 
   function useElixir() {
     if (character.slots.elixir) return
-    const slot = character.items.findIndex(o => o?.type === 'elixir')
+    const slot = character.items.findIndex(o => o && G.items[o.name].type === 'elixir')
     if (slot > -1) equip(slot)
   }
 
@@ -466,10 +478,7 @@
   function startParty() {
     partyKeys.forEach((name, index) => {
       if (!get_party()[name] && !get_player(name)) {
-        setTimeout(
-          () => start_character(name, followerKeys.includes(name) ? 'Follower' : 'Healer'),
-          index * timeStartup
-        )
+        setTimeout(() => start_character(name, 'Follower'), index * timeStartup)
         setTimeout(() => comeToMe(name), index * timeStartup + timeStartup)
       }
     })
@@ -481,85 +490,11 @@
     parent.character_code_eval(name, snippet)
   }
 
-  function randomServer() {
+  function changeServer() {
     const servers = ['US-I', 'US-II', 'US-III', 'US-PVP', 'EU-I', 'EU-II', 'EU-PVP', 'ASIA-I']
-    const server = servers[Math.floor(Math.random() * servers.length)].split('-')
-    change_server(server[0], server[1])
+    const [region, identifier] = servers[Math.floor(Math.random() * servers.length)].split('-')
+    change_server(region, identifier)
   }
-
-  const bagSlot = (item, bag) => bagSlots(item, bag)?.[0]
-  const bagSlots = (arg, bag) =>
-    bag.map((o, slot) => (itemFilter(arg)(o) ? slot : null)).filter(isNotNull)
-  const bankPack = x => (character.bank || {})[x] ?? []
-  const bankPackKeys = Object.keys(bank_packs).filter(x => bank_packs[x][0] === 'bank')
-
-  const bankStore = ({ name, type, level }) => {
-    if (!character.bank) return
-    character.items.forEach((o, slot) => {
-      if (o?.name !== (name || type)) return
-      if (level !== undefined && o?.level !== level) return
-      bankStoreItem(o, slot)
-    })
-  }
-
-  const bankStoreAll = () => character.items.forEach(bankStoreItem)
-
-  const bankStoreItem = (item, slot) => {
-    if (!item) return
-    let stacked = false
-    if (isStackableType(item.name)) {
-      bankPackKeys.some(packKey => {
-        if (!character.bank[packKey]) return
-        const packSlot = bagSlot(item, bankPack(packKey))
-        if (packSlot && can_stack(item, bankPack(packKey)[packSlot])) {
-          console.log(`stacking ${item.name}`)
-          let openPackSlot = openSlotInBankPack(packKey)
-          console.log(`openSlotInBankPack('${packKey}')`, openPackSlot)
-          if (openPackSlot) {
-            bank_store(slot, packKey, openPackSlot)
-            parent.socket.emit('bank', {
-              operation: 'move',
-              pack: packKey,
-              a: openPackSlot,
-              b: packSlot,
-            })
-            stacked = true
-            return true
-          } // else
-          const openSlot = openSlots(character.items)[0]
-          if (openSlot > -1) {
-            console.log(`can’t stack in full pack, but can swap to open slot`)
-            const swapSlot = (packSlot + 1) % packSize
-            bank_retrieve(packKey, swapSlot, openSlot)
-            bank_store(slot, packKey, swapSlot)
-            parent.socket.emit('bank', {
-              operation: 'move',
-              pack: packKey,
-              a: swapSlot,
-              b: packSlot,
-            })
-            bank_store(openSlot, packKey, swapSlot)
-            stacked = true
-            return true
-          } else {
-            game_log('stack failed: need open slot in bank or inventory')
-          }
-        }
-      })
-    }
-    if (!stacked) {
-      const packKey = getPackWithSpace()
-      if (packKey) bank_store(slot, packKey)
-    }
-  }
-
-  const getPackWithSpace = () => bankPackKeys.find(openSlotInBankPack)
-  const isNotNull = x => x !== null
-  const isNull = x => x === null
-  const isStackableType = type => type && G.items[type]?.s
-  const itemFilter = arg => o =>
-    o?.name === (arg.name || arg.type) && (arg.level === undefined || o.level === arg.level)
-  const openSlotInBankPack = key => bankPack(key).find(isNull)
 
   //
   // HOOKS

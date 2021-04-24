@@ -89,7 +89,7 @@
           console.log(`stacking ${item.name}`)
           let openPackSlot = openSlotInBankPack(packKey)
           console.log(`openSlotInBankPack('${packKey}')`, openPackSlot)
-          if (openPackSlot) {
+          if (openPackSlot > -1) {
             bank_store(slot, packKey, openPackSlot)
             parent.socket.emit('bank', {
               operation: 'move',

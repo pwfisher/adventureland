@@ -17,13 +17,13 @@
   const autoPotion = true
   const autoRespawn = true
   const autoSell = true
-  const autoSellMaxLevel = 3
+  const autoSellLevelMax = 3
   const autoStand = true
   const autoTown = false
   const autoUpgrade = true
   const autoUpgradeBuyType = '' // item key, e.g. 'staff'
   const autoUpgradeMaxGrade = 1
-  const autoUpgradeMaxLevel = 6
+  const autoUpgradeMaxLevel = 6 // 7
   const bankPackKeys = ['items0', 'items1']
   const characterKeys = [
     'Banger',
@@ -33,6 +33,7 @@
     'Hunger',
     'Linger',
     'Longer',
+    'Winger',
     'Zinger',
   ]
   const partyKeys = []
@@ -84,7 +85,8 @@
   //
   // LOOP
   //
-  setInterval(() => {
+  setInterval(tick, tickDelay)
+  function tick() {
     const { map } = character
     const item0 = character.items[0]
     if (character.rip) {
@@ -107,7 +109,7 @@
         character.items.forEach((item, slot) => {
           if (
             autoSellTypes.includes(item?.name) &&
-            (item?.level === undefined || item.level <= autoSellMaxLevel)
+            (item?.level === undefined || item.level <= autoSellLevelMax)
           )
             sell(slot, 9999)
         })
@@ -125,7 +127,12 @@
     }
     // alphabetize bank to group compoundables?
     // autoRealmRotate, buy from Ponty ['ringsj', 'intring', 'dexring', 'strring', ...]
-  }, tickDelay)
+
+    //
+    // UPDATE
+    //
+    set(`${character.id}:items`, character.items)
+  }
 
   //
   // Functions

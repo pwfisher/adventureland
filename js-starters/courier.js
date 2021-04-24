@@ -1,31 +1,24 @@
 ;(function () {
   /**
-   * Follower
+   * Courier
+   *
+   * Merchant specializing in bank deposit and storage runs.
    *
    * @author Patrick Fisher <patrick@pwfisher.com>
    * @see https://github.com/kaansoral/adventureland
    */
-  const isMeleeType = player => ['warrior', 'rogue', 'paladin'].includes(player.ctype)
 
   //
   // CONFIG
   //
-  const autoAttack = true
   let autoAvoidWillAggro = true
-  const autoDefend = true
-  const autoElixir = true
-  const autoFollow = true
-  const autoHeal = true
-  let autoHostile = false
-  const autoKite = !isMeleeType(character)
+  const autoElixir = false
+  const autoFollow = false
+  // const autoKeepAway = false // todo? maintain 600px+ range for tracktrix
+  const autoKite = true
   const autoLoot = true
-  const autoMelee = isMeleeType(character)
-  let autoMob = ''
   const autoPotion = true
-  let autoPriority = false
   const autoRespawn = true
-  const autoSquish = true
-  const autoStalk = true
   const characterKeys = [
     'Banger',
     'Binger',
@@ -37,16 +30,13 @@
     'Winger',
     'Zinger',
   ]
-  const injuredAt = 0.99
-  let priorityMobTypes = ['franky', 'froggie']
   const rangeChunk = 50
   const rangeFollow = 10
   const rangeRadar = Infinity
-  const rangeStalk = [character.range * 0.8, character.range]
   const tickDelay = 250
   const uiBlank = '--'
 
-  smart.use_town = false
+  smart.use_town = true
 
   //
   // STATE
@@ -56,18 +46,14 @@
   let leader
   let leaderSmart
   let mobs = {}
-  let mobToAttack = null
-  let moveDirection = null // null | 'in' | 'out' | 'map'
+  let moveDirection = null // null | 'in' | 'out' | 'kite' | 'smart'
   let radar = [] // [{ mob: Entity, range: Number }]
-  let whichMob = null
 
   const resetState = () => {
     kitingMob = null
     mobs = {}
-    mobToAttack = null
     moveDirection = null
     radar = []
-    whichMob = null
   }
 
   //
@@ -76,9 +62,8 @@
   setInterval(tick, tickDelay)
   function tick() {
     ;({ character: leader, smart: leaderSmart } = get('leader-state') ?? {})
-    ;({ autoAvoidWillAggro, autoHostile, autoMap, autoMob, autoPriority, priorityMobTypes } =
-      get('follower-config') || {})
-    const { ctype, hp, max_hp, rip } = character
+    ;({ autoAvoidWillAggro } = get('follower-config') || {})
+    const { rip } = character
 
     if (rip && autoRespawn && radar.length) respawn()
     if (rip || smart.moving) resetState()
@@ -89,108 +74,40 @@
     if (autoPotion) usePotion()
 
     //
-    // HEAL
-    //
-    if (hp < max_hp && ctype === 'paladin' && !isOnCooldown('selfheal')) use_skill('selfheal')
-    const injuredList = parent.party_list.map(key => parent.entities[key]).filter(isInjured)
-    if (isInjured(character)) injuredList.push(character)
-    if (autoHeal && injuredList.length && !isOnCooldown('partyheal')) use_skill('partyheal')
-
-    //
     // RADAR
     //
     updateRadar()
     const aggroMob = getNearestMonster({ target: character.id, min_att: 1 })
     const hostileMob = getNearestHostile()
-    const lockMob = get_targeted_monster()
-    const partyMob = getNearestMonster({ target: leader?.id }) // should include any party member targeted
-    const priorityMob = getPriorityMob()
-    const squishyMob = getNearestMonster({ min_xp: 1, max_hp: character.attack * 0.95 })
     const willAggroMob = getNearestMonster({ aggro: true, min_att: 1 })
-    mobs = {
-      aggroMob,
-      hostileMob,
-      kitingMob,
-      lockMob,
-      partyMob,
-      priorityMob,
-      squishyMob,
-      willAggroMob,
-    }
+    mobs = { aggroMob, hostileMob, kitingMob, willAggroMob }
     if (!aggroMob) kitingMob = null
-    const canSquish =
-      autoSquish && squishyMob && is_in_range(squishyMob, 'attack') && !isOnCooldown('attack')
-
-    //
-    // ATTACK
-    //
-    if (hostileMob && autoHostile) whichMob = 'hostile'
-    else if (priorityMob && autoPriority) whichMob = 'priority'
-    else if (
-      lockMob?.visible &&
-      iAmTargetOf(lockMob) &&
-      (autoAttack || autoDefend) &&
-      (autoStalk || autoKite || radarRange(lockMob) < character.range)
-    )
-      whichMob = 'lock'
-    else if (aggroMob && autoDefend) whichMob = 'aggro'
-    else if (partyMob && autoAttack) whichMob = 'party'
-    else whichMob = canSquish ? 'squishy' : null
-    mobToAttack = mobs[`${whichMob}Mob`]
-
-    if (
-      can_attack(mobToAttack) &&
-      (autoMelee ||
-        ['priority', 'hostile', 'leader', 'lock', 'aggro', 'squishy'].includes(whichMob) ||
-        radarRange(mobToAttack) > safeRangeFor(mobToAttack))
-    ) {
-      attack(mobToAttack)
-    }
 
     //
     // MOVEMENT
     //
-    if (autoMap && character.map !== autoMap) smartMove(autoMap)
-    else if (autoMob && !getNearestMonster({ type: autoMob })) smartMove(autoMob)
-    else if (aggroMob && (kitingMob || autoKite) && radarRange(aggroMob) <= safeRangeFor(aggroMob))
+    if (aggroMob && (kitingMob || autoKite) && radarRange(aggroMob) <= safeRangeFor(aggroMob))
       kite(aggroMob)
     else if (
       autoAvoidWillAggro &&
       willAggroMob &&
-      radarRange(willAggroMob) <= safeRangeFor(willAggroMob) &&
-      (!autoMelee || willAggroMob !== mobToAttack)
+      radarRange(willAggroMob) <= safeRangeFor(willAggroMob)
     )
       moveToward(willAggroMob, -rangeChunk)
-    else if (autoStalk && mobToAttack && whichMob !== 'squishy') {
-      if (
-        (moveDirection === 'in' &&
-          radarRange(mobToAttack) <= Math.max(rangeStalk[1], safeRangeFor(mobToAttack))) ||
-        (moveDirection === 'out' &&
-          radarRange(mobToAttack) >= Math.max(rangeStalk[0], safeRangeFor(mobToAttack)))
-      )
-        // in goldilocks zone
-        followOrStop()
-      else if (!autoMelee && radarRange(mobToAttack) <= safeRangeFor(mobToAttack))
-        moveToward(mobToAttack, -rangeChunk)
-      else if (radarRange(mobToAttack) > character.range) moveToward(mobToAttack, rangeChunk)
-      else followOrStop()
-    } else followOrStop()
+    else followOrStop()
 
     //
     // UPDATE
     //
-    const uiRange = radarRange(mobToAttack) ? Math.round(radarRange(mobToAttack)) : uiBlank
-    const uiWhich = whichMob?.slice(0, 5) || uiBlank
+    const uiRange = radarRange(leader) ? Math.round(radarRange(leader)) : uiBlank
     const uiDir = smart.moving ? 'smart' : kitingMob ? 'kite' : moveDirection || uiBlank
-    set_message(`${uiRange} ${uiWhich} ${uiDir}`)
+    set_message(`${uiRange} cour ${uiDir}`)
     set(`${character.id}:items`, character.items)
   }
 
   //
   // FUNCTIONS
   //
-  const isInjured = mob => mob && mob.hp < injuredAt * mob.max_hp && !mob.rip
-
   const followOrStop = () => {
     const map = leaderSmart.moving ? leaderSmart.map : leader?.map
     if (map === 'bank') return
@@ -248,35 +165,24 @@
       return true
     })
 
-  const getPriorityMob = () =>
-    priorityMobTypes
-      .map(mtype => getRadarPings({ mtype }).reduce(minRange, { range: Infinity }))
-      .reduce(minRange, { range: Infinity }).mob
-
-  const iAmTargetOf = mob => mob?.target === character.id
-
   const isHostilePlayer = mob =>
     !characterKeys.includes(mob.id) &&
     !characterKeys.includes(mob.party) &&
     (mob.map === 'arena' || parent.server_identifier === 'PVP')
 
-  const isSquishy = mob => mob?.hp < character.attack * 0.95
-
   const moveToward = (mob, distance) => {
     if (mob.map !== undefined && mob.map !== character.map) return
     if (!can_move_to(mob.x, mob.y)) return smartMove(mob)
     const [x, y] = unitVector(character, mob)
-    const safeDistance =
-      radarRange(mob) && !autoMelee
-        ? Math.min(distance, radarRange(mob) - safeRangeFor(mob) - character.speed)
-        : distance
+    const safeDistance = radarRange(mob)
+      ? Math.min(distance, radarRange(mob) - safeRangeFor(mob) - character.speed)
+      : distance
     move(character.x + x * safeDistance, character.y + y * safeDistance)
     moveDirection = distance > 0 ? 'in' : 'out'
   }
 
   const safeRangeFor = mob => {
-    if (autoMelee && mob === mobToAttack) return 0
-    if (mob.attack === 0 || (mob.target && mob.target !== character.id) || isSquishy(mob)) return 0
+    if (mob.attack === 0 || (mob.target && mob.target !== character.id)) return 0
     return mob.range + mob.speed
   }
 
@@ -322,10 +228,83 @@
   }
 
   //
+  // Banking
+  //
+  const bagSlot = (item, bag) => bagSlots(item, bag)?.[0]
+  const bagSlots = (props, bag) =>
+    bag.map((o, slot) => (itemFilter(props)(o) ? slot : null)).filter(isNotNull)
+  const bankPack = x => (character.bank || {})[x] ?? []
+  const bankPackKeys = Object.keys(bank_packs).filter(x => bank_packs[x][0] === 'bank')
+
+  const bankStore = ({ name, type, level }) => {
+    if (!character.bank) return
+    Object.entries(character.items)
+      .filter(([o]) => o?.name === (name ?? type))
+      .filter(([o]) => level === undefined || o.level === level)
+      .forEach(([o, slot]) => bankStoreItem(o, slot))
+  }
+
+  const bankStoreAll = () => character.items.forEach(bankStoreItem)
+
+  const bankStoreItem = (item, slot) => {
+    if (!item) return
+    let stacked = false
+    if (isStackableType(item.name)) {
+      stacked = bankPackKeys.some(packKey => {
+        const bag = bankPack(packKey)
+        if (!bag.length) return
+        const packSlot = bagSlot(item, bag)
+        if (!packSlot || !can_stack(item, bag[packSlot])) return
+        console.debug(`stacking ${item.name} in ${packKey}, slot ${packSlot}`)
+        // stacking requires open slot + move
+        let openPackSlot = bag.find(isNull)
+        console.debug('openPackSlot', openPackSlot)
+        if (openPackSlot) {
+          bank_store(slot, packKey, openPackSlot)
+          parent.socket.emit('bank', {
+            operation: 'move',
+            pack: packKey,
+            a: openPackSlot,
+            b: packSlot,
+          })
+          return true
+        } // else
+        const openSlot = character.items.findIndex(isNull)
+        if (openSlot > -1) {
+          console.debug('can’t stack in full bank pack, but can swap to open slot')
+          const swapSlot = (packSlot + 1) % packSize
+          bank_retrieve(packKey, swapSlot, openSlot)
+          bank_store(slot, packKey, swapSlot)
+          parent.socket.emit('bank', {
+            operation: 'move',
+            pack: packKey,
+            a: swapSlot,
+            b: packSlot,
+          })
+          bank_store(openSlot, packKey, swapSlot)
+          return true
+        } else {
+          game_log('stack failed: need open slot in bank or inventory')
+        }
+      })
+    }
+    if (!stacked) {
+      const packKey = bankPackKeys.find(k => bankPack(k).some(isNull))
+      if (packKey) bank_store(slot, packKey)
+    }
+  }
+
+  const isNotNull = x => x !== null
+  const isNull = x => x === null
+  const isStackableType = type => type && G.items[type]?.s
+  const itemFilter = props => o =>
+    o?.name === (props.name || props.type) && (props.level === undefined || o.level === props.level)
+
+  //
   // HOOKS
   //
   on_party_invite = key => {
     if (characterKeys.includes(key)) accept_party_invite(key)
   }
 })()
-// end follower.js
+// end courier.js
