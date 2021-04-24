@@ -1,4 +1,4 @@
-export type MapName =
+export type MapKey =
   | 'abtesting'
   | 'arena'
   | 'bank'

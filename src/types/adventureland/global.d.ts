@@ -1,4 +1,5 @@
 import { IPosition, PositionMovable, PositionReal, PositionSmart } from 'alclient'
+import * as PIXI from 'pixi.js'
 import { Character, CharacterKey } from './Character'
 import { Chest } from './Chest'
 import { DoorInfo } from './DoorInfo'
@@ -10,7 +11,7 @@ import {
   DamageType,
   EquipSlot,
   ItemKey,
-  MapName,
+  MapKey,
   MonsterType,
   NPCRole,
   NPCType,
@@ -27,6 +28,7 @@ import { StatSet } from './StatSet'
 
 declare global {
   interface Window {
+    character_code_eval(name: CharacterKey, snippet: string): void
     close_merchant(): void
     distance(from: IPosition | PositionReal, to: IPosition | PositionReal): number
     exchange(slot: number): void
@@ -108,7 +110,7 @@ declare global {
    * [2]: The cost to unlock this bank pack if you buy with shells
    */
   const bank_packs: {
-    [T in BankPackKey]: [MapName, number, number]
+    [T in BankPackKey]: [MapKey, number, number]
   }
 
   const character: Character & {
@@ -197,7 +199,7 @@ declare global {
    * @param y The y position on the map
    * @returns TRUE if the door can be used from the given position, FALSE otherwise
    */
-  function can_use_door(map: MapName, door: DoorInfo, x: number, y: number): boolean
+  function can_use_door(map: MapKey, door: DoorInfo, x: number, y: number): boolean
   /**
    * Checks if the given entity can walk (i.e. move). If given your own character, it will also check if you are already transporting.
    * @param entity The entity to check
@@ -276,13 +278,19 @@ declare global {
   function damage_multiplier(difference: number): number
   function distance(from: IPosition | PositionReal, to: IPosition | PositionReal): number
   /** Draws a circle on the map */
-  function draw_circle(x: number, y: number, radius: number, size: number, color: number) PIXI.Graphics | void
-  function equip(inventoryPostion: number, slot?: EquipSlot)
-  function exchange(inventoryPosition: number)
-  function game_log(message: string, color?: string)
+  function draw_circle(
+    x: number,
+    y: number,
+    radius: number,
+    size: number,
+    color: number
+  ): PIXI.Graphics | void
+  function equip(inventoryPostion: number, slot?: EquipSlot): unknown
+  function exchange(inventoryPosition: number): unknown
+  function game_log(message: string, color?: string): unknown
   function get(key: string): Object | string | null
   function get_targeted_monster(): Entity
-  function heal(target: Entity)
+  function heal(target: Entity): unknown
   /** Checks whether or not we can attack other players */
   function is_pvp(): boolean
   function is_transporting(entity: Entity): boolean
@@ -302,43 +310,43 @@ declare global {
    */
   function move(x: number, y: number): Promise<void>
   function reduce_cooldown(skill: SkillKey, ms: number): void
-  function respawn()
+  function respawn(): unknown
   /** Quantity defaults to 1 if not set */
-  function sell(inventoryPostion: number, quantity?: number)
-  function send_cm(to: string, data: any)
-  function send_gold(to: string, amount: number)
-  function send_item(to: string, inventoryPostion: number, quantity?: number)
-  function send_local_cm(to: string, data: any)
+  function sell(inventoryPostion: number, quantity?: number): unknown
+  function send_cm(to: string, data: any): unknown
+  function send_gold(to: string, amount: number): unknown
+  function send_item(to: string, inventoryPostion: number, quantity?: number): unknown
+  function send_local_cm(to: string, data: any): unknown
   /** If isRequest is set to true, it will send a party request */
-  function send_party_invite(name: string, isRequest?: boolean)
-  function send_party_request(name: string)
-  function set_message(text: string, color?: string)
+  function send_party_invite(name: string, isRequest?: boolean): unknown
+  function send_party_request(name: string): unknown
+  function set_message(text: string, color?: string): unknown
   function simple_distance(from: IPosition | PositionReal, to: IPosition | PositionReal): number
-  function smart_move(destination: IPosition | MapName | MonsterType, callback?: () => void)
-  function start_character(name: string, codeName?: string)
-  function stop(action?: string)
-  function stop_character(name: string)
+  function smart_move(destination: IPosition | MapKey | MonsterType, callback?: () => void): unknown
+  function start_character(name: string, codeName?: string): unknown
+  function stop(action?: string): unknown
+  function stop_character(name: string): unknown
   /** Swap the position of two items in the player's inventory */
-  function swap(index1: number, index2: number)
+  function swap(index1: number, index2: number): unknown
   /** For buying things off players' merchants */
-  function trade_buy(target: Entity, trade_slot: number)
-  function transport(map: MapName, spawn?: number)
-  function unequip(slot: EquipSlot | TradeSlot)
+  function trade_buy(target: Entity, trade_slot: number): unknown
+  function transport(map: MapKey, spawn?: number): unknown
+  function unequip(slot: EquipSlot | TradeSlot): unknown
   function upgrade(
     itemInventoryPosition: number,
     scrollInventoryPosition: number,
     offeringInventoryPosition?: number
-  ): Promise<any>
-  function use_skill(name: '3shot' | '5shot', targets: Entity[]): Promise<any>[]
+  ): Promise<unknown>
+  function use_skill(name: '3shot' | '5shot', targets: Entity[]): Promise<unknown>[]
   /** For destination, it's an array of [x, y] */
-  function use_skill(name: 'blink', destination: [number, number])
+  function use_skill(name: 'blink', destination: [number, number]): unknown
   /** The string is the ID of the target, the number is how much mana to spend on the attack */
-  function use_skill(name: 'cburst', targets: [string, number][]): Promise<any>
-  function use_skill(name: 'energize', target: Entity, mp: number): Promise<any>
-  function use_skill(name: 'magiport', target: string): Promise<any>
-  function use_skill(name: 'throw', target: Entity, inventoryPostion: number): Promise<any>
-  function use_skill(name: 'town'): Promise<any>
-  function use_skill(name: SkillKey, target?: Entity, extraArg?: any): Promise<any>
+  function use_skill(name: 'cburst', targets: [string, number][]): Promise<unknown>
+  function use_skill(name: 'energize', target: Entity, mp: number): Promise<unknown>
+  function use_skill(name: 'magiport', target: string): Promise<unknown>
+  function use_skill(name: 'throw', target: Entity, inventoryPostion: number): Promise<unknown>
+  function use_skill(name: 'town'): Promise<unknown>
+  function use_skill(name: SkillKey, target?: Entity, extraArg?: any): Promise<unknown>
   function trade(
     inventoryPosition: number,
     tradeSlot: number | TradeSlot,
@@ -346,7 +354,7 @@ declare global {
     quantity: number
   ): void
   /** This function uses move() if it can, otherwise it uses smart_move() */
-  function xmove(x: number, y: number)
+  function xmove(x: number, y: number): unknown
 
   /** Contains information about smart_move() */
   let smart: IPosition & {
@@ -367,7 +375,7 @@ declare global {
     base_gold: {
       [T in MonsterType]?: {
         /** The base amount of gold this monster drops if you kill it in the given map */
-        [T in MapName]?: number
+        [T in MapKey]?: number
       }
     }
     classes: {
@@ -417,7 +425,7 @@ declare global {
     }
     items: { [T in ItemKey]: GItem }
     geometry: {
-      [T in MapName]: {
+      [T in MapKey]: {
         max_x: number
         max_y: number
         min_x: number
@@ -429,7 +437,7 @@ declare global {
       }
     }
     maps: {
-      [T in MapName]: {
+      [T in MapKey]: {
         doors: DoorInfo[]
         /** The name of the map, if this changes, the map layout probably changed. */
         key: string
@@ -439,7 +447,7 @@ declare global {
         monsters: {
           count: number
           boundary?: [number, number, number, number]
-          boundaries?: [MapName, number, number, number, number][]
+          boundaries?: [MapKey, number, number, number, number][]
           type: MonsterType
         }[]
         /** Not sure what this means. Might mean that only one character of the players can be here at a time. */
@@ -449,8 +457,8 @@ declare global {
         on_death: number
         ref: {
           [id: string]: IPosition & {
-            map: MapName
-            in: MapName
+            map: MapKey
+            in: MapKey
             id: string
           }
         }
@@ -470,7 +478,7 @@ declare global {
         name: string
         /** A list of places you can transport to with this NPC. The number is the spawn */
         places?: {
-          [T in MapName]?: number
+          [T in MapKey]?: number
         }
         role: NPCRole
       }

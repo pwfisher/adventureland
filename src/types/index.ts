@@ -11,11 +11,13 @@ import {
 } from './adventureland'
 import { Dictionary } from './utility'
 
+export * from './adventureland'
 export * from './utility'
 
 export type Bag = Item[]
 export type BagItem = Partial<Item> & { bag: BagKey; slot: number }
 export type BagKey = 'inventory' | Exclude<BankPackKey, 'gold'>
+export type KitePath = { x: number; y: number }[]
 export type MobPriority = { key: EntityKey; priority: number }
 export type MobSpawn = PositionRealm & { monsterType: MonsterType }
 export type MonsterMap = Dictionary<

@@ -1,11 +1,11 @@
 import { characterKeys } from '../config'
-import { Bag } from '../types'
+import { Bag, Character, CharacterKey, Dictionary } from '../types'
 
 export abstract class BaseBot {
 
-  let character: Character
-  let inventories: Bag[]
+  private character: Character
+  private inventories: Dictionary<CharacterKey, Bag>
 
   setLSKey(`${character.id}:items`, character.items)
-  inventories = characterKeys.map(key => get(`${key}:items`))
+  inventories = Object.fromEntries(characterKeys.map(key => [key, get(`${key}:items`)]))
 }

@@ -13,6 +13,7 @@
   const autoAttack = true
   let autoAvoidWillAggro = true
   const autoDefend = true
+  const autoElixir = true
   const autoFollow = true
   let autoHostile = false
   const autoKite = !isMeleeType(character)
@@ -81,6 +82,7 @@
     }
     if (smart.moving) resetState()
 
+    if (autoElixir) useElixir()
     if (autoLoot) loot()
     if (autoPotion) usePotion()
 
@@ -284,6 +286,12 @@
     else if (mpLost) use_skill('regen_mp')
     else used = false
     if (used) lastPotion = new Date()
+  }
+
+  function useElixir() {
+    if (character.slots.elixir) return
+    const slot = character.items.findIndex(o => o?.type === 'elixir')
+    if (slot > -1) equip(slot)
   }
 
   function isOnCooldown(skill) {

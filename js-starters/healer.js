@@ -13,6 +13,7 @@
   const autoAttack = true
   let autoAvoidWillAggro = true
   const autoDefend = true
+  const autoElixir = true
   const autoFollow = true
   const autoHeal = true
   let autoHostile = false
@@ -35,7 +36,7 @@
     'Longer',
     'Zinger',
   ]
-  const injuredAt = 0.8
+  const injuredAt = 0.99
   let priorityMobTypes = []
   const rangeChunk = character.speed
   const rangeFollow = 10
@@ -83,6 +84,7 @@
     }
     if (smart.moving) resetState()
 
+    if (autoElixir) useElixir()
     if (autoLoot) loot()
     if (autoPotion) usePotion()
 
@@ -296,6 +298,12 @@
     else if (mpLost) use_skill('regen_mp')
     else used = false
     if (used) lastPotion = new Date()
+  }
+
+  function useElixir() {
+    if (character.slots.elixir) return
+    const slot = character.items.findIndex(o => o?.type === 'elixir')
+    if (slot > -1) equip(slot)
   }
 
   function isOnCooldown(skill) {

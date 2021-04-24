@@ -1,5 +1,6 @@
 export * from './Character'
 export * from './Chest'
+export * from './constants'
 export * from './DoorInfo'
 export * from './Entity'
 export * from './enum'

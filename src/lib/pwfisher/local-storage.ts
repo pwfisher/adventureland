@@ -1,5 +1,6 @@
 // replace game’s `set` to strip circular references
-function setLSKey(key: string, value: unknown) {
+// prefix "cstore_" matches game get()
+export function setLSKey(key: string, value: unknown) {
   try {
     window.localStorage.setItem(
       `cstore_${key}`,

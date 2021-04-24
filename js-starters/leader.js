@@ -14,10 +14,10 @@
   //
 
   // master controls
-  let autoMap = ''
+  let autoMap = 'arena'
   const autoMelee = isMeleeType(character)
   const autoMob = ''
-  const manualMode = false || TEMPORARILY_TRUE
+  const manualMode = false // || TEMPORARILY_TRUE
 
   if (TEMPORARILY_FALSE)
     setInterval(() => {
@@ -35,7 +35,7 @@
   const autoAttack = true // && TEMPORARILY_FALSE
   const autoAvoidWillAggro = !autoMelee && !manualMode
   const autoDefend = true
-  // const autoElixir = true
+  const autoElixir = true
   const autoHostile = false
   const autoKite = !autoMelee
   const autoKitePath = true
@@ -49,7 +49,6 @@
   const autoRest = true
   const autoSquish = true
   const autoStalk = !manualMode
-  const bankPackKeys = Object.keys(bank_packs).filter(x => bank_packs[x][0] === 'bank')
   const characterKeys = ['Banger', 'Binger', 'Dinger', 'Finger', 'Hunger', 'Longer', 'Zinger']
   const followerKeys = ['Finger', 'Binger']
   const healerKeys = ['Hunger']
@@ -143,6 +142,7 @@
     }
     if (smart.moving && moveDirection !== 'escape') resetState()
 
+    if (autoElixir) useElixir()
     if (autoLoot) loot()
     if (autoParty) partyUp()
     if (autoPotion) usePotion()
@@ -434,6 +434,12 @@
     if (used) lastPotion = new Date()
   }
 
+  function useElixir() {
+    if (character.slots.elixir) return
+    const slot = character.items.findIndex(o => o?.type === 'elixir')
+    if (slot > -1) equip(slot)
+  }
+
   function isOnCooldown(skill) {
     const cooldownKey = G.skills[skill]?.share ?? skill
     return (
@@ -485,6 +491,7 @@
   const bagSlots = (arg, bag) =>
     bag.map((o, slot) => (itemFilter(arg)(o) ? slot : null)).filter(isNotNull)
   const bankPack = x => (character.bank || {})[x] ?? []
+  const bankPackKeys = Object.keys(bank_packs).filter(x => bank_packs[x][0] === 'bank')
 
   const bankStore = ({ name, type, level }) => {
     if (!character.bank) return
