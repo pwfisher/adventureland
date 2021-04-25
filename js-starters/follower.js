@@ -58,7 +58,8 @@
   let mobs = {}
   let mobToAttack = null
   let moveDirection = null // null | 'in' | 'out' | 'map'
-  let radar = [] // [{ mob: Entity, range: Number }]
+  let radar = null // [{ mob: Entity, range: Number }]
+  let respawnCalled = false
   let whichMob = null
 
   const resetState = () => {
@@ -80,9 +81,15 @@
       get('follower-config') || {})
     const { ctype, hp, max_hp, rip } = character
 
-    if (rip && autoRespawn && radar.length) respawn()
-    if (rip || smart.moving) resetState()
+    if (rip && autoRespawn && !respawnCalled) {
+      respawnCalled = true
+      respawn()
+      resetState()
+    }
     if (rip) return
+    else respawnCalled = false
+
+    if (smart.moving) resetState()
 
     if (autoElixir) useElixir()
     if (autoLoot) loot()

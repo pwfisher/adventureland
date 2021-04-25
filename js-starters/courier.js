@@ -48,6 +48,7 @@
   let mobs = {}
   let moveDirection = null // null | 'in' | 'out' | 'kite' | 'smart'
   let radar = [] // [{ mob: Entity, range: Number }]
+  let respawnCalled = false
 
   const resetState = () => {
     kitingMob = null
@@ -65,9 +66,15 @@
     ;({ autoAvoidWillAggro } = get('follower-config') || {})
     const { rip } = character
 
-    if (rip && autoRespawn && radar.length) respawn()
-    if (rip || smart.moving) resetState()
+    if (rip && autoRespawn && !respawnCalled) {
+      respawnCalled = true
+      respawn()
+      resetState()
+    }
     if (rip) return
+    else respawnCalled = false
+
+    if (smart.moving) resetState()
 
     if (autoElixir) useElixir()
     if (autoLoot) loot()

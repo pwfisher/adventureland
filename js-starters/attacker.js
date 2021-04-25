@@ -38,6 +38,7 @@
   let mobToAttack = null
   let moveDirection = null // null | 'in' | 'out'
   let radar = [] // [{ mob: Entity, range: Number }]
+  let respawnCalled = false
   let whichMob = null
 
   const resetState = () => {
@@ -54,9 +55,15 @@
   function tick() {
     const { id, rip } = character
 
-    if (rip && autoRespawn && radar.length) respawn()
-    if (rip || smart.moving) resetState()
+    if (rip && autoRespawn && !respawnCalled) {
+      respawnCalled = true
+      respawn()
+      resetState()
+    }
     if (rip) return
+    else respawnCalled = false
+
+    if (smart.moving) resetState()
 
     if (autoLoot) loot()
     if (autoPotion) use_hp_or_mp()

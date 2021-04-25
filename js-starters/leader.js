@@ -23,7 +23,6 @@
 
   const autoAttack = true // && TEMPORARILY_FALSE
   const autoAvoidWillAggro = !autoMelee && !manualMode
-  const autoCourier = true
   const autoDefend = true
   const autoElixir = true
   const autoHeal = true
@@ -92,6 +91,7 @@
   let mobToAttack = null
   let moveDirection = null // null | 'in' | 'out'
   let radar = [] // [{ mob: Entity, range: Number }]
+  let respawnCalled = false
   let whichMob = null
 
   const resetState = () => {
@@ -135,11 +135,16 @@
 
     if (characterLast.id !== character.id) return game_log(`Extra leader: ${character.id}`)
 
-    if (rip && autoRespawn && radar.length) respawn()
-    if (rip || (smart.moving && moveDirection !== 'escape')) resetState()
+    if (rip && autoRespawn && !respawnCalled) {
+      respawnCalled = true
+      respawn()
+      resetState()
+    }
     if (rip) return
+    else respawnCalled = false
 
-    if (autoCourier) useCourier()
+    if (smart.moving && moveDirection !== 'escape') resetState()
+
     if (autoElixir) useElixir()
     if (autoLoot) loot()
     if (autoParty) partyUp()

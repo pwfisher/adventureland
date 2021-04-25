@@ -60,7 +60,7 @@
     'pants',
     'pants1',
     'shadowstone',
-    // 'shoes',
+    'shoes',
     'shoes1',
     'spear',
     'spores',
@@ -73,8 +73,12 @@
   //
   // STATE
   //
-  // Stateless.
-  const resetState = () => {}
+  let radar = []
+  let respawnCalled = false
+
+  const resetState = () => {
+    radar = []
+  }
 
   //
   // INIT
@@ -87,13 +91,27 @@
   //
   setInterval(tick, tickDelay)
   function tick() {
-    const { map } = character
+    const { map, rip } = character
     const item0 = character.items[0]
-    if (character.rip) {
-      if (autoRespawn) respawn()
-      return resetState()
-    }
 
+    if (rip && autoRespawn && !respawnCalled) {
+      respawnCalled = true
+      respawn()
+      resetState()
+    }
+    if (rip) return
+    else respawnCalled = false
+
+    if (smart.moving) resetState()
+
+    //
+    // RADAR
+    //
+    updateRadar()
+
+    //
+    // ACTIONS
+    //
     if (autoParty) partyUp()
     if (autoPotion) use_hp_or_mp()
     if (autoStand) {
@@ -205,14 +223,14 @@
   }
 
   // "radar" caches "radar pings" [{ mob, range }] for performance
-  const updatePlayerRadar = () => {
-    playerRadar = []
+  const updateRadar = () => {
+    radar = []
     for (id in parent.entities) {
       const mob = parent.entities[id]
-      if (mob.type !== 'player' || !mob.visible || mob.dead) continue
+      if (!mob.visible || mob.dead || mob.rip) continue
       const range = distance(character, mob)
       if (range > rangeRadar) continue
-      playerRadar.push({ mob, range })
+      radar.push({ mob, range })
     }
   }
 
