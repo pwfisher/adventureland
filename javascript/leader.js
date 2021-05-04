@@ -5,36 +5,39 @@
    * @author Patrick Fisher <patrick@pwfisher.com>
    * @see https://github.com/kaansoral/adventureland
    */
-  const isMeleeType = player => ['warrior', 'rogue', 'paladin'].includes(player.ctype)
+  const isMeleeType = ['warrior', 'rogue', 'paladin'].includes(character.ctype)
+  const isPaladin = character.ctype === 'paladin'
+  const isPriest = character.ctype === 'priest'
   const TEMPORARILY_FALSE = false
   const TEMPORARILY_TRUE = true
+  console.log({ TEMPORARILY_FALSE, TEMPORARILY_TRUE })
 
   //
   // CONFIG
   //
 
   // master controls
-  let autoMap = 'arena'
-  const autoMelee = isMeleeType(character)
-  const autoMob = ''
+  const autoMap = 'arena'
+  const autoMob = '' // finicky
   const manualMode = false // || TEMPORARILY_TRUE
 
   // ------
 
   const autoAttack = true // && TEMPORARILY_FALSE
-  const autoAvoidWillAggro = !autoMelee && !manualMode
+  const autoAvoidWillAggro = !isMeleeType && !manualMode // && TEMPORARILY_FALSE
   const autoDefend = true
   const autoElixir = true
   const autoHeal = true
   const autoHostile = false
-  const autoKite = !autoMelee
+  const autoKite = !isMeleeType // && TEMPORARILY_FALSE
   const autoKitePath = true
   const autoLoot = true
+  const autoMelee = isMeleeType // || TEMPORARILY_TRUE
   const autoParty = true // && TEMPORARILY_FALSE
   const autoPotion = true
   const autoPriority = true
-  const autoRealm = true // && TEMPORARILY_FALSE
-  const autoRealmMinutes = 5
+  const autoRealm = !manualMode // && TEMPORARILY_FALSE
+  const autoRealmMinutes = 5 // * 60 * 24
   const autoRespawn = true
   const autoRest = true
   const autoSquish = true
@@ -54,10 +57,17 @@
   const partyKeys = ['Hunger', 'Finger', 'Zinger'].filter(x => x !== character.id).slice(0, 2)
   const preyAtkMax = 1000
   const preyXpMin = 300
-  const priorityMobTypes = ['dracul', 'franky', 'froggie', 'greenjr', 'phoenix', 'wabbit']
+  const priorityMobTypes = [
+    'dracul',
+    'franky',
+    'froggie',
+    'greenjr',
+    'phoenix',
+    'skeletor',
+    'wabbit',
+  ]
   const rangeChunk = 50
   const rangeRadar = Infinity
-  const rangeSendItem = 200 // ?
   const rangeStalk = [character.range * 0.8, character.range]
   const tickDelay = 250
   const timeStartup = 4000
@@ -72,8 +82,6 @@
   set('follower-config', {
     autoAvoidWillAggro,
     autoHostile,
-    autoMap,
-    autoMob,
     autoPriority,
     priorityMobTypes,
   })
@@ -91,7 +99,6 @@
   let mobToAttack = null
   let moveDirection = null // null | 'in' | 'out'
   let radar = [] // [{ mob: Entity, range: Number }]
-  let respawnCalled = false
   let whichMob = null
 
   const resetState = () => {
@@ -131,17 +138,16 @@
     const { character: characterLast } = get('leader-state') ?? {}
     hasMoved =
       character.real_x !== characterLast?.real_x || character.real_y !== characterLast?.real_y
-    const { ctype, hp, max_hp, rip } = character
+    const { hp, max_hp, rip } = character
 
     if (characterLast.id !== character.id) return game_log(`Extra leader: ${character.id}`)
 
-    if (rip && autoRespawn && !respawnCalled) {
-      respawnCalled = true
-      respawn()
+    if (rip) {
       resetState()
+      if (autoRespawn) respawn()
+      return
     }
-    if (rip) return
-    else respawnCalled = false
+    if (smart.moving) resetState()
 
     if (smart.moving && moveDirection !== 'escape') resetState()
 
@@ -153,10 +159,17 @@
     //
     // HEAL
     //
-    if (hp < max_hp && ctype === 'paladin' && !isOnCooldown('selfheal')) use_skill('selfheal')
     const injuredList = parent.party_list.map(key => parent.entities[key]).filter(isInjured)
     if (isInjured(character)) injuredList.push(character)
-    if (autoHeal && injuredList.length && !isOnCooldown('partyheal')) use_skill('partyheal')
+    if (autoHeal) {
+      if (isPaladin && hp < max_hp && !isOnCooldown('selfheal')) use_skill('selfheal')
+      else if (isPriest && injuredList.length) {
+        if (!isOnCooldown('partyheal')) use_skill('partyheal')
+        else if (!isOnCooldown('heal')) {
+          heal(injuredList.sort((a, b) => a.max_hp - a.hp - (b.max_hp - b.hp))[0])
+        }
+      }
+    }
 
     //
     // RADAR
@@ -197,7 +210,7 @@
     else if (priorityMob && autoPriority) whichMob = 'priority'
     else if (
       lockMob?.visible &&
-      iAmTargetOf(lockMob) &&
+      isTargetOf(lockMob) &&
       (autoAttack || autoDefend) &&
       (autoStalk || autoKite || radarRange(lockMob) < character.range)
     )
@@ -290,7 +303,6 @@
         stop() // in goldilocks zone
         moveDirection = null
       } else if (
-        autoKite &&
         !autoMelee &&
         canKite(mobToAttack) &&
         radarRange(mobToAttack) <= safeRangeFor(mobToAttack)
@@ -329,10 +341,10 @@
   const canKite = mob => character.speed > mob.speed && character.range > mob.range
 
   const kite = mob => {
-    const kitePath = closestPath(kitePaths[character.map])
+    const paths = kitePaths[character.map]
+    const kitePath = closestPath(paths)
     kitingMob = mob
-    if (autoKitePath && mob.hp > character.attack * 10 && kitePath) {
-      // nb: no path if mob.hp low
+    if (autoKitePath && kitePath) {
       if (!kitePathPoint) kitePathPoint = closestSafePoint(kitePath, mob)
       else if (distance(mob, kitePathPoint) < safeRangeFor(mob) * 1.5)
         // mob cuts corner
@@ -342,13 +354,15 @@
   }
 
   const closestPoint = points =>
-    points.map(o => ({ ...o, range: distance(character, o) })).reduce(minRange, { range: Infinity })
+    points
+      .map(o => ({ ...o, range: o && character ? distance(character, o) : Infinity }))
+      .reduce(minRange, { range: Infinity })
 
   const closestPath = paths => {
+    if (!paths?.length) return null
     // todo: closest point anywhere in any path?
-    if (!paths) return null
     const closestTrailhead = closestPoint(paths.map(path => path[0]))
-    return paths.find(path => path[0].x === closestTrailhead.x && path[0].y === closestTrailhead.y)
+    return paths.find(o => o && o[0].x === closestTrailhead.x && o[0].y === closestTrailhead.y)
   }
 
   const closestSafePoint = (points, mob) =>
@@ -399,14 +413,20 @@
       .map(mtype => getRadarPings({ mtype }).reduce(minRange, { range: Infinity }))
       .reduce(minRange, { range: Infinity }).mob
 
-  const iAmTargetOf = mob => mob?.target === character.id
+  const isTargetOf = mob => mob?.target === character.id
 
   const isHostilePlayer = mob =>
     !characterKeys.includes(mob.id) &&
     !characterKeys.includes(mob.party) &&
     (mob.map === 'arena' || parent.server_identifier === 'PVP')
 
-  const isSafePrey = mob => mob.speed < character.speed - 1 && !mob.dreturn
+  const isSafePrey = mob =>
+    character.range > mob.range &&
+    mob.speed < character.speed &&
+    !(
+      (G.classes[character.ctype].damage_type === 'physical' && mob.dreturn) ||
+      (G.classes[character.ctype].damage_type === 'magical' && mob.reflection)
+    )
 
   const moveToward = (mob, distance) => {
     if (mob.map !== undefined && mob.map !== character.map) return

@@ -291,6 +291,7 @@ declare global {
   function exchange(inventoryPosition: number): unknown
   function game_log(message: string, color?: string): unknown
   function get(key: string): Object | string | null
+  function get_player(name: CharacterKey): Character
   function get_targeted_monster(): Entity
   function heal(target: Entity): unknown
   /** Checks whether or not we can attack other players */
@@ -311,23 +312,24 @@ declare global {
    * @param y
    */
   function move(x: number, y: number): Promise<void>
+  function on_party_invite(name: CharacterKey): unknown
   function reduce_cooldown(skill: SkillKey, ms: number): void
   function respawn(): unknown
   /** Quantity defaults to 1 if not set */
   function sell(inventoryPostion: number, quantity?: number): unknown
-  function send_cm(to: string, data: any): unknown
-  function send_gold(to: string, amount: number): unknown
-  function send_item(to: string, inventoryPostion: number, quantity?: number): unknown
-  function send_local_cm(to: string, data: any): unknown
+  function send_cm(to: CharacterKey, data: any): unknown
+  function send_gold(to: CharacterKey, amount: number): unknown
+  function send_item(to: CharacterKey, inventoryPostion: number, quantity?: number): unknown
+  function send_local_cm(to: CharacterKey, data: any): unknown
   /** If isRequest is set to true, it will send a party request */
-  function send_party_invite(name: string, isRequest?: boolean): unknown
-  function send_party_request(name: string): unknown
+  function send_party_invite(name: CharacterKey, isRequest?: boolean): unknown
+  function send_party_request(name: CharacterKey): unknown
   function set_message(text: string, color?: string): unknown
   function simple_distance(from: IPosition | PositionReal, to: IPosition | PositionReal): number
   function smart_move(destination: IPosition | MapKey | MonsterType, callback?: () => void): unknown
-  function start_character(name: string, codeName?: string): unknown
+  function start_character(name: CharacterKey, codeName?: string): unknown
   function stop(action?: string): unknown
-  function stop_character(name: string): unknown
+  function stop_character(name: CharacterKey): unknown
   function swap(slotA: number, slotB: number): unknown // inventory
   function trade_buy(target: Entity, trade_slot: number): unknown // player merchant
   function transport(map: MapKey, spawn?: number): unknown
@@ -450,7 +452,6 @@ declare global {
         role: NPCRole
       }
     }
-    // TODO: Get list of quest names
     quests: {
       [T in string]: PositionReal & {
         id: NPCType

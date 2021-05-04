@@ -25,12 +25,12 @@ function getAuthCookie(): string {
 }
 
 const saveMap: { [filename: string]: SaveSlot } = {
-  './src/bot/attacker.ts': { name: 'attacker', slot: 101 },
-  './src/bot/courier.ts': { name: 'courier', slot: 102 },
-  './src/bot/follower.ts': { name: 'follower', slot: 103 },
-  './src/bot/leader.ts': { name: 'leader', slot: 104 },
-  './src/lib/snippets.ts': { name: 'snippets', slot: 105 },
-  './src/bot/upgrader.ts': { name: 'upgrader', slot: 106 },
+  './src/saves/attacker.ts': { name: 'attacker', slot: 101 },
+  './src/saves/courier.ts': { name: 'courier', slot: 102 },
+  './src/saves/follower.ts': { name: 'follower', slot: 103 },
+  './src/saves/leader.ts': { name: 'leader', slot: 104 },
+  './src/saves/snippets.ts': { name: 'snippets', slot: 105 },
+  './src/saves/upgrader.ts': { name: 'upgrader', slot: 106 },
 }
 
 const authCookie: string = getAuthCookie()

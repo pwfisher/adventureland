@@ -53,4 +53,13 @@ export const tickDelay = 250
 export const timeStartup = 4000
 export const uiBlank = '--'
 
+//
+// HOOKS
+//
+// todo: hmm, how shall we hook these up?
+//
+window.on_party_invite = key => {
+  if (characterKeys.includes(key)) accept_party_invite(key)
+}
+
 smart.use_town = false

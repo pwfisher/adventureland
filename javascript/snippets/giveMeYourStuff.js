@@ -7,9 +7,7 @@ function giveMeYourStuff(name) {
     for (let i = 0; i < 35; i++) parent.socket.emit('send', { name: '${id}', num: i, q: 9999 })
   `
   parent.character_code_eval(name, snippet)
-  setTimeout(() => parent.socket.emit('send', { name, gold: 100000 }), character.ping * 3)
 }
-
 parent.party_list.forEach(giveMeYourStuff)
 
 // stop my code (as leader)

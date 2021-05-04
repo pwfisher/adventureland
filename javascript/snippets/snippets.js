@@ -87,4 +87,8 @@ Object.fromEntries(
   Object.entries(G.monsters).filter(([monsterType]) => monsterType.includes('target'))
 )
 
+Object.entries(G.skills)
+  .filter(([_, o]) => o.class?.includes('priest'))
+  .reduce((acc, [k, v]) => ({ ...acc, [k]: v }), {})
+
 // end snippets.js

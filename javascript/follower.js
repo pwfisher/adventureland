@@ -5,27 +5,27 @@
    * @author Patrick Fisher <patrick@pwfisher.com>
    * @see https://github.com/kaansoral/adventureland
    */
-  const isMeleeType = player => ['warrior', 'rogue', 'paladin'].includes(player.ctype)
+  const isMeleeType = ['warrior', 'rogue', 'paladin'].includes(character.ctype)
+  const isPaladin = character.ctype === 'paladin'
+  const isPriest = character.ctype === 'priest'
 
   //
   // CONFIG
   //
-  const autoAttack = true
   let autoAvoidWillAggro = true
+  let autoHostile = false
+  let autoPriority = true
+  let priorityMobTypes = ['franky', 'froggie']
+
+  const autoAttack = true
   const autoDefend = true
   const autoElixir = true
-  const autoFollow = true
   const autoHeal = true
-  let autoHostile = false
-  const autoKite = !isMeleeType(character)
   const autoLoot = true
-  const autoMelee = isMeleeType(character)
-  let autoMob = ''
+  const autoMelee = isMeleeType
   const autoPotion = true
-  let autoPriority = false
   const autoRespawn = true
   const autoSquish = true
-  const autoStalk = true
   const characterKeys = [
     'Banger',
     'Binger',
@@ -38,11 +38,9 @@
     'Zinger',
   ]
   const injuredAt = 0.99
-  let priorityMobTypes = ['franky', 'froggie']
   const rangeChunk = 50
   const rangeFollow = 10
   const rangeRadar = Infinity
-  const rangeStalk = [character.range * 0.8, character.range]
   const tickDelay = 250
   const uiBlank = '--'
 
@@ -51,6 +49,7 @@
   //
   // STATE
   //
+  let followerConfig = {}
   let kitingMob = null
   let lastPotion = new Date()
   let leader
@@ -59,7 +58,6 @@
   let mobToAttack = null
   let moveDirection = null // null | 'in' | 'out' | 'map'
   let radar = null // [{ mob: Entity, range: Number }]
-  let respawnCalled = false
   let whichMob = null
 
   const resetState = () => {
@@ -77,18 +75,14 @@
   setInterval(tick, tickDelay)
   function tick() {
     ;({ character: leader, smart: leaderSmart } = get('leader-state') ?? {})
-    ;({ autoAvoidWillAggro, autoHostile, autoMap, autoMob, autoPriority, priorityMobTypes } =
-      get('follower-config') || {})
-    const { ctype, hp, max_hp, rip } = character
-
-    if (rip && autoRespawn && !respawnCalled) {
-      respawnCalled = true
-      respawn()
+    ;({ autoAvoidWillAggro, autoHostile, autoPriority, priorityMobTypes } = followerConfig =
+      get('follower-config') || followerConfig)
+    const { hp, max_hp, rip } = character
+    if (rip) {
       resetState()
+      if (autoRespawn) respawn()
+      return
     }
-    if (rip) return
-    else respawnCalled = false
-
     if (smart.moving) resetState()
 
     if (autoElixir) useElixir()
@@ -98,10 +92,19 @@
     //
     // HEAL
     //
-    if (hp < max_hp && ctype === 'paladin' && !isOnCooldown('selfheal')) use_skill('selfheal')
-    const injuredList = parent.party_list.map(key => parent.entities[key]).filter(isInjured)
+    const partyPlayers = parent.party_list.map(k => parent.entities[k])
+    const injuredList = partyPlayers.filter(isInjured)
     if (isInjured(character)) injuredList.push(character)
-    if (autoHeal && injuredList.length && !isOnCooldown('partyheal')) use_skill('partyheal')
+
+    if (autoHeal) {
+      if (isPaladin && hp < max_hp && !isOnCooldown('selfheal')) use_skill('selfheal')
+      else if (isPriest && injuredList.length) {
+        if (!isOnCooldown('partyheal')) use_skill('partyheal')
+        else if (!isOnCooldown('heal')) {
+          heal(injuredList.sort((a, b) => a.max_hp - a.hp - (b.max_hp - b.hp))[0])
+        }
+      }
+    }
 
     //
     // RADAR
@@ -133,12 +136,7 @@
     //
     if (hostileMob && autoHostile) whichMob = 'hostile'
     else if (priorityMob && autoPriority) whichMob = 'priority'
-    else if (
-      lockMob?.visible &&
-      iAmTargetOf(lockMob) &&
-      (autoAttack || autoDefend) &&
-      (autoStalk || autoKite || radarRange(lockMob) < character.range)
-    )
+    else if (lockMob?.visible && iAmTargetOf(lockMob) && radarRange(lockMob) < character.range)
       whichMob = 'lock'
     else if (aggroMob && autoDefend) whichMob = 'aggro'
     else if (partyMob && autoAttack) whichMob = 'party'
@@ -157,31 +155,7 @@
     //
     // MOVEMENT
     //
-    if (autoMap && character.map !== autoMap) smartMove(autoMap)
-    else if (autoMob && !getNearestMonster({ type: autoMob })) smartMove(autoMob)
-    else if (aggroMob && (kitingMob || autoKite) && radarRange(aggroMob) <= safeRangeFor(aggroMob))
-      kite(aggroMob)
-    else if (
-      autoAvoidWillAggro &&
-      willAggroMob &&
-      radarRange(willAggroMob) <= safeRangeFor(willAggroMob) &&
-      (!autoMelee || willAggroMob !== mobToAttack)
-    )
-      moveToward(willAggroMob, -rangeChunk)
-    else if (autoStalk && mobToAttack && whichMob !== 'squishy') {
-      if (
-        (moveDirection === 'in' &&
-          radarRange(mobToAttack) <= Math.max(rangeStalk[1], safeRangeFor(mobToAttack))) ||
-        (moveDirection === 'out' &&
-          radarRange(mobToAttack) >= Math.max(rangeStalk[0], safeRangeFor(mobToAttack)))
-      )
-        // in goldilocks zone
-        followOrStop()
-      else if (!autoMelee && radarRange(mobToAttack) <= safeRangeFor(mobToAttack))
-        moveToward(mobToAttack, -rangeChunk)
-      else if (radarRange(mobToAttack) > character.range) moveToward(mobToAttack, rangeChunk)
-      else followOrStop()
-    } else followOrStop()
+    followOrStop()
 
     //
     // UPDATE
@@ -199,24 +173,18 @@
   const isInjured = mob => mob && mob.hp < injuredAt * mob.max_hp && !mob.rip
 
   const followOrStop = () => {
-    const map = leaderSmart.moving ? leaderSmart.map : leader?.map
+    if (!leader?.map || !character?.map) return
+    const map = leaderSmart.moving ? leaderSmart.map : leader.map
     if (map === 'bank') return
-    const leaderGoingTo = { map, x: leader?.going_x, y: leader?.going_y }
-    const rangeLeaderGoingTo = leader && distance(character, leaderGoingTo)
-    if (autoFollow && leader.map !== character.map) smartMove(leader.map)
-    else if (autoFollow && rangeLeaderGoingTo > rangeFollow)
+
+    const { going_x, going_y } = leader
+    const leaderGoingTo = { map, x: going_x, y: going_y }
+    const rangeLeaderGoingTo = distance(character, leaderGoingTo)
+
+    if (map !== character.map) smartMove(leader)
+    else if (!smart.moving && rangeLeaderGoingTo > rangeFollow) {
       moveToward(leaderGoingTo, Math.min(rangeChunk, rangeLeaderGoingTo))
-    else stopMoving()
-  }
-
-  const stopMoving = () => {
-    stop()
-    moveDirection = null
-  }
-
-  const kite = mob => {
-    kitingMob = mob
-    moveToward(mob, -rangeChunk)
+    }
   }
 
   // "radar" caches "radar pings" [{ mob, range }] for performance
@@ -273,11 +241,12 @@
     if (mob.map !== undefined && mob.map !== character.map) return
     if (!can_move_to(mob.x, mob.y)) return smartMove(mob)
     const [x, y] = unitVector(character, mob)
-    const safeDistance =
-      radarRange(mob) && !autoMelee
-        ? Math.min(distance, radarRange(mob) - safeRangeFor(mob) - character.speed)
-        : distance
-    move(character.x + x * safeDistance, character.y + y * safeDistance)
+    // const safeDistance =
+    //   radarRange(mob) && !autoMelee
+    //     ? Math.min(distance, radarRange(mob) - safeRangeFor(mob) - character.speed)
+    //     : distance
+    // move(character.x + x * safeDistance, character.y + y * safeDistance)
+    move(character.x + x * distance, character.y + y * distance)
     moveDirection = distance > 0 ? 'in' : 'out'
   }
 

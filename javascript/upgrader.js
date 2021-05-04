@@ -5,6 +5,9 @@
    * @author Patrick Fisher <patrick@pwfisher.com>
    * @see https://github.com/kaansoral/adventureland
    */
+  const TEMPORARILY_FALSE = false
+  const TEMPORARILY_TRUE = true
+  console.log({ TEMPORARILY_FALSE, TEMPORARILY_TRUE })
 
   //
   // CONFIG
@@ -13,6 +16,8 @@
   const autoCompoundLevelMax = 3
   const autoExchange = true
   const autoLoot = false
+  const autoLuck = true
+  const autoMine = true
   const autoParty = false
   const autoPotion = true
   const autoRespawn = true
@@ -24,6 +29,17 @@
   const autoUpgradeBuyType = '' // item key, e.g. 'staff'
   const autoUpgradeMaxGrade = 1
   const autoUpgradeMaxLevel = 6 // 7
+  const autoUpgradeLevels = {
+    bataxe: 5,
+    cape: 3,
+    coat: 8,
+    ecape: 6,
+    helmet: 8,
+    pants: 8,
+    pickaxe: 3,
+    rod: 3,
+    shoes: 8,
+  }
   const bankPackKeys = ['items0', 'items1']
   const characterKeys = [
     'Banger',
@@ -43,42 +59,34 @@
   const autoSellTypes = [
     'bwing',
     'beewings',
-    'cape',
-    'cape1',
     'cclaw',
     'crabclaw',
-    'coat',
     'coat1',
     'dagger',
     'frogt',
-    'gloves',
     'gloves1',
     'gslime',
-    'helmet',
+    'harmor',
+    'hboots',
     'helmet1',
+    'hgloves',
+    'hhelmet',
+    'hpants',
     'ijx',
-    'pants',
     'pants1',
     'shadowstone',
-    'shoes',
     'shoes1',
     'spear',
     'spores',
     'sstinger',
     'sword',
     'throwingstars',
-    'whiteegg',
+    // 'whiteegg',
   ].filter(x => x !== autoUpgradeBuyType)
 
   //
   // STATE
   //
-  let radar = []
-  let respawnCalled = false
-
-  const resetState = () => {
-    radar = []
-  }
 
   //
   // INIT
@@ -92,22 +100,14 @@
   setInterval(tick, tickDelay)
   function tick() {
     const { map, rip } = character
-    const item0 = character.items[0]
 
-    if (rip && autoRespawn && !respawnCalled) {
-      respawnCalled = true
+    if (rip && autoRespawn) {
       respawn()
       resetState()
     }
     if (rip) return
-    else respawnCalled = false
 
     if (smart.moving) resetState()
-
-    //
-    // RADAR
-    //
-    updateRadar()
 
     //
     // ACTIONS
@@ -118,11 +118,12 @@
       if (is_moving(character) && character.stand) close_stand()
       else if (!is_moving(character) && !character.stand) open_stand()
     }
-    luckPlayersInRange()
 
     if (map !== 'bank') {
       if (autoCompound) compoundAny()
       if (autoExchange) exchangeSlot0()
+      if (autoLuck) useMluck()
+      if (autoMine) useMining()
       if (autoSell)
         character.items.forEach((item, slot) => {
           if (
@@ -155,16 +156,41 @@
   //
   // Functions
   //
+  let mluckedAt = Date.now()
+
+  function useMluck() {
+    if (isOnCooldown('mluck') || character.mp < 10) return
+    const now = Date.now()
+    if (now - mluckedAt < 1000) return
+    if (character.s?.mluck?.f !== character.name) return use_skill('mluck', character)
+    return Object.entries(parent.entities)
+      .filter(([_, mob]) => mob.player && !mob.npc)
+      .filter(([_, mob]) => !mob.s?.mluck?.strong)
+      .filter(([_, mob]) => !mob.s?.mluck) // todo: or my peeps but not my mluck
+      .filter(([_, mob]) => distance(character, mob) <= G.skills.mluck.range)
+      .some(([_, mob]) => {
+        use_skill('mluck', mob)
+        game_log(`mluck mob: ${mob.id}`)
+        return true
+      })
+  }
+
+  let lastMinedAt = 0
+
+  function useMining() {
+    if (isOnCooldown('mining') || character.slots.mainhand.name !== 'pickaxe') return
+    const now = Date.now()
+    if (now - lastMinedAt < G.skills.mining.cooldown) return
+    use_skill('mining')
+    lastMinedAt = now
+  }
+
   function exchangeSlot0() {
     if (character.q.exchange || isOnCooldown('exchange')) return
     if (isExchangeableType(character.items[0]?.name)) exchange(0)
   }
 
-  function openStandInTown() {
-    const x = -100 - Math.round(Math.random() * 50)
-    const y = -100 - Math.round(Math.random() * 50)
-    smart_move({ map: 'main', x, y }, () => move(x, y + 1)) // face forward
-  }
+  const openStandInTown = () => smart_move({ map: 'main', x: 101, y: -145 }, () => move(101, -144))
 
   const partyUp = () =>
     partyKeys.forEach(key => {
@@ -197,7 +223,8 @@
   const isAutoUpgradeableItem = item =>
     isUpgradeableType(item?.name) &&
     item_grade(item) <= autoUpgradeMaxGrade &&
-    item.level < autoUpgradeMaxLevel
+    item.level <
+      (autoUpgradeLevels[item.name] > -1 ? autoUpgradeLevels[item.name] : autoUpgradeMaxLevel)
   const autoUpgradeableSlot = () => character.items.findIndex(o => isAutoUpgradeableItem(o))
 
   // A "bag" is character.items or, e.g., character.bank['items0']
@@ -214,13 +241,6 @@
   const bagSlots = (arg, bag) =>
     bag.map((o, slot) => (itemFilter(arg)(o) ? slot : null)).filter(isNotNull)
   const openSlots = bag => bag.map((o, slot) => (o ? null : slot)).filter(isNotNull)
-
-  const luckPlayersInRange = () => {
-    Object.entries(parent.entities)
-      .map((_, x) => x)
-      .filter(mob => mob.s?.mluck?.f !== character.id)
-    // range: G.skills.mluck.range - 20
-  }
 
   // "radar" caches "radar pings" [{ mob, range }] for performance
   const updateRadar = () => {
