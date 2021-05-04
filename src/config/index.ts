@@ -1,4 +1,4 @@
-import { isMeleeType, TEMPORARILY_FALSE, TEMPORARILY_TRUE } from '../lib/pwfisher'
+import { isMeleeType, TEMPORARILY_FALSE, TEMPORARILY_TRUE } from '../lib'
 
 console.log({
   TEMPORARILY_FALSE,
@@ -17,6 +17,7 @@ export * from './kitePaths'
 export const autoAttack = true // && TEMPORARILY_FALSE
 export const autoAvoidWillAggro = !autoMelee && !manualMode
 export const autoDefend = true
+export const autoElixir = true
 export const autoFollow = true
 export const autoHostile = true
 export const autoKite = !autoMelee
@@ -45,7 +46,7 @@ export const characterKeys = [
 export const partyKeys = ['Hunger', 'Finger', 'Zinger'].filter(x => x !== character.id).slice(0, 2)
 export const preyAtkMax = 1000
 export const preyXpMin = 300
-export const priorityMobTypes = ['dracul', 'franky', 'froggie', 'greenjr', 'phoenix', 'wabbit']
+export const priorityMobTypes = ['dracul', 'franky', 'froggie', 'greenjr', 'phoenix', 'wabbit'] // todo different for follower
 export const rangeFollow = 10
 export const rangeStalk = [character.range * 0.8, character.range]
 export const tickDelay = 250

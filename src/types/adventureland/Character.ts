@@ -1,4 +1,4 @@
-import { BankPackKey, CharacterType, ItemKey } from './enum'
+import { BankPackKey, CharacterType, EquipSlot, ItemKey, TradeSlot } from './enum'
 import { Entity } from './Entity'
 import { Item } from './Item'
 
@@ -27,6 +27,17 @@ export type Character = Entity & {
     exchange?: { id: ItemKey; len: number; ms: number; name: ItemKey; num: number; q: number }
   }
   range: number
+  slots: {
+    [T in EquipSlot]: Item
+  } &
+    {
+      [T in TradeSlot]?: Item & {
+        giveaway?: number // minutes remaining
+        list: CharacterKey[] // in giveaway
+        price: number
+        rid: string
+      }
+    }
   speed: number
   // A bit of extra range that we can use to attack further monsters. It's variable.
   // If you attack a monster using this extra range, it decreases for the next attack.

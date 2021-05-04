@@ -1,5 +1,5 @@
 import { Dictionary, KitePath, MapKey } from '../types'
-import { arrayOf } from '../lib/pwfisher'
+import { arrayOf } from '../lib'
 
 const caveLoop: KitePath = [
   { x: 375, y: -200 }, // lower left

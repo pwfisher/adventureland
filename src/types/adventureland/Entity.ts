@@ -45,17 +45,6 @@ export type Entity = PositionRealm & {
   'rip'?: boolean // player is dead
   'rpiercing': number
   's': StatusInfo
-  'slots'?: {
-    [T in EquipSlot]: Item
-  } &
-    {
-      [T in TradeSlot]?: Item & {
-        giveaway?: number // minutes remaining
-        list: CharacterKey[] // in giveaway
-        price: number
-        rid: string
-      }
-    }
   'speed': number
   'standed'?: unknown // merchant open
   'stoned'?: boolean

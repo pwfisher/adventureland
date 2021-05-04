@@ -1,5 +1,5 @@
-import { Entity, KitePath } from '../../types'
-import { kitePaths } from '../../config'
+import { Entity, KitePath } from '../types'
+import { kitePaths } from '../config'
 import { closest } from './math'
 
 export const canKite = (mob: Entity) => character.speed > mob.speed && character.range > mob.range

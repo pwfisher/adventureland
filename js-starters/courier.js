@@ -19,6 +19,7 @@
   const autoLoot = true
   const autoPotion = true
   const autoRespawn = true
+  const bagSize = 42
   const characterKeys = [
     'Banger',
     'Binger',
@@ -279,7 +280,7 @@
         const openSlot = character.items.findIndex(isNull)
         if (openSlot > -1) {
           console.debug('can’t stack in full bank pack, but can swap to open slot')
-          const swapSlot = (packSlot + 1) % packSize
+          const swapSlot = (packSlot + 1) % bagSize
           bank_retrieve(packKey, swapSlot, openSlot)
           bank_store(slot, packKey, swapSlot)
           parent.socket.emit('bank', {

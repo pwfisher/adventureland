@@ -9,7 +9,7 @@
   //
   const autoCompoundLevelMax = 3
   const bankPackKeys = Object.keys(bank_packs).filter(x => bank_packs[x][0] === 'bank')
-  const packSize = 42
+  const bagSize = 42
   const trashItemTypes = ['cclaw', 'coat', 'gloves', 'helmet', 'pants', 'shoes']
 
   const arrayOf = x => (Array.isArray(x) ? x : [x])
@@ -103,7 +103,7 @@
           const openSlot = openSlots(character.items)[0]
           if (openSlot > -1) {
             console.log(`can’t stack in full pack, but can swap to open slot`)
-            const swapSlot = (packSlot + 1) % packSize
+            const swapSlot = (packSlot + 1) % bagSize
             bank_retrieve(packKey, swapSlot, openSlot)
             bank_store(slot, packKey, swapSlot)
             parent.socket.emit('bank', {

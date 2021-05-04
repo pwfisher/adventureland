@@ -1,5 +1,5 @@
 import { MapKey, ServerKey } from './enum'
-import { Point } from '../../lib/pwfisher'
+import { Point } from '../../lib'
 
 export type PositionRealm = PositionMovable & {
   server?: ServerKey

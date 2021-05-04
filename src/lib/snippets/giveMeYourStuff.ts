@@ -1,4 +1,4 @@
-import { CharacterKey } from '../../../types'
+import { CharacterKey } from '../../types'
 
 function giveMeYourStuff(name: CharacterKey) {
   // keeping bottom row for yourself. hence 35
