@@ -37,7 +37,6 @@
     'Winger',
     'Zinger',
   ]
-  const injuredAt = 0.99
   const rangeChunk = 50
   const rangeFollow = 10
   const rangeRadar = Infinity
@@ -97,11 +96,13 @@
     if (isInjured(character)) injuredList.push(character)
 
     if (autoHeal) {
-      if (isPaladin && hp < max_hp && !isOnCooldown('selfheal')) use_skill('selfheal')
+      if (isPaladin && hp < max_hp && !isOnCooldown('selfheal')) useSkill('selfheal')
       else if (isPriest && injuredList.length) {
-        if (!isOnCooldown('partyheal')) use_skill('partyheal')
+        if (!isOnCooldown('partyheal')) useSkill('partyheal')
         else if (!isOnCooldown('heal')) {
-          heal(injuredList.sort((a, b) => a.max_hp - a.hp - (b.max_hp - b.hp))[0])
+          const healTarget = injuredList.sort((a, b) => a.max_hp - a.hp - (b.max_hp - b.hp))[0]
+          game_log(`heal ${healTarget.id}`)
+          heal(healTarget)
         }
       }
     }
@@ -170,7 +171,7 @@
   //
   // FUNCTIONS
   //
-  const isInjured = mob => mob && mob.hp < injuredAt * mob.max_hp && !mob.rip
+  const isInjured = mob => mob && mob.hp < mob.max_hp - character.attack && !mob.rip
 
   const followOrStop = () => {
     if (!leader?.map || !character?.map) return
@@ -268,6 +269,12 @@
     return [dx / magnitude, dy / magnitude]
   }
 
+  function useElixir() {
+    if (character.slots.elixir) return
+    const slot = character.items.findIndex(o => o && G.items[o.name].type === 'elixir')
+    if (slot > -1) equip(slot)
+  }
+
   function usePotion() {
     if (safeties && mssince(lastPotion) < min(200, character.ping * 3)) return
     if (isOnCooldown('use_hp')) return // use_mp shares use_hp cooldown somehow
@@ -286,10 +293,9 @@
     if (used) lastPotion = new Date()
   }
 
-  function useElixir() {
-    if (character.slots.elixir) return
-    const slot = character.items.findIndex(o => o && G.items[o.name].type === 'elixir')
-    if (slot > -1) equip(slot)
+  function useSkill(name) {
+    // game_log(name)
+    use_skill(name)
   }
 
   function isOnCooldown(skill) {

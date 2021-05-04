@@ -17,7 +17,7 @@
   //
 
   // master controls
-  const autoMap = 'arena'
+  const autoMap = ''
   const autoMob = '' // finicky
   const manualMode = false // || TEMPORARILY_TRUE
 
@@ -53,7 +53,6 @@
     'Winger',
     'Zinger',
   ]
-  const injuredAt = 0.99
   const partyKeys = ['Hunger', 'Finger', 'Zinger'].filter(x => x !== character.id).slice(0, 2)
   const preyAtkMax = 1000
   const preyXpMin = 300
@@ -159,14 +158,18 @@
     //
     // HEAL
     //
-    const injuredList = parent.party_list.map(key => parent.entities[key]).filter(isInjured)
+    const partyPlayers = parent.party_list.map(k => parent.entities[k])
+    const injuredList = partyPlayers.filter(isInjured)
     if (isInjured(character)) injuredList.push(character)
+
     if (autoHeal) {
-      if (isPaladin && hp < max_hp && !isOnCooldown('selfheal')) use_skill('selfheal')
+      if (isPaladin && hp < max_hp && !isOnCooldown('selfheal')) useSkill('selfheal')
       else if (isPriest && injuredList.length) {
-        if (!isOnCooldown('partyheal')) use_skill('partyheal')
+        if (!isOnCooldown('partyheal')) useSkill('partyheal')
         else if (!isOnCooldown('heal')) {
-          heal(injuredList.sort((a, b) => a.max_hp - a.hp - (b.max_hp - b.hp))[0])
+          const healTarget = injuredList.sort((a, b) => a.max_hp - a.hp - (b.max_hp - b.hp))[0]
+          game_log(`heal ${healTarget.id}`)
+          heal(healTarget)
         }
       }
     }
@@ -336,7 +339,7 @@
   //
   // FUNCTIONS
   //
-  const isInjured = mob => mob && mob.hp < injuredAt * mob.max_hp && !mob.rip
+  const isInjured = mob => mob && mob.hp < mob.max_hp - character.attack && !mob.rip
 
   const canKite = mob => character.speed > mob.speed && character.range > mob.range
 
@@ -420,13 +423,11 @@
     !characterKeys.includes(mob.party) &&
     (mob.map === 'arena' || parent.server_identifier === 'PVP')
 
-  const isSafePrey = mob =>
-    character.range > mob.range &&
-    mob.speed < character.speed &&
-    !(
-      (G.classes[character.ctype].damage_type === 'physical' && mob.dreturn) ||
-      (G.classes[character.ctype].damage_type === 'magical' && mob.reflection)
-    )
+  const isSafePrey = _mob => true
+  //   character.range > mob.range &&
+  //   mob.speed < character.speed &&
+  //   !(G.classes[character.ctype].damage_type === 'physical' && mob.dreturn) &&
+  //   !(G.classes[character.ctype].damage_type === 'magical' && mob.reflection))
 
   const moveToward = (mob, distance) => {
     if (mob.map !== undefined && mob.map !== character.map) return
@@ -453,6 +454,12 @@
     return [dx / magnitude, dy / magnitude]
   }
 
+  function useElixir() {
+    if (character.slots.elixir) return
+    const slot = character.items.findIndex(o => o && G.items[o.name].type === 'elixir')
+    if (slot > -1) equip(slot)
+  }
+
   function usePotion() {
     if (safeties && mssince(lastPotion) < min(200, character.ping * 3)) return
     if (isOnCooldown('use_hp')) return // use_mp shares use_hp cooldown somehow
@@ -471,10 +478,9 @@
     if (used) lastPotion = new Date()
   }
 
-  function useElixir() {
-    if (character.slots.elixir) return
-    const slot = character.items.findIndex(o => o && G.items[o.name].type === 'elixir')
-    if (slot > -1) equip(slot)
+  function useSkill(name) {
+    // game_log(name)
+    use_skill(name)
   }
 
   function isOnCooldown(skill) {
@@ -492,6 +498,7 @@
 
   const safeRangeFor = mob => {
     if (mob.attack === 0 || (mob.target && mob.target !== character.id)) return 0
+    if (mob.attack < character.attack) return 0
     return mob.range + mob.speed
   }
 
