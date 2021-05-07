@@ -12,7 +12,6 @@
   //
   // CONFIG
   //
-  let autoAvoidWillAggro = true
   let autoHostile = false
   let autoPriority = true
   let priorityMobTypes = ['franky', 'froggie']
@@ -38,7 +37,7 @@
     'Zinger',
   ]
   const rangeChunk = 50
-  const rangeFollow = 10
+  const rangeFollow = 50
   const rangeRadar = Infinity
   const tickDelay = 250
   const uiBlank = '--'
@@ -74,7 +73,7 @@
   setInterval(tick, tickDelay)
   function tick() {
     ;({ character: leader, smart: leaderSmart } = get('leader-state') ?? {})
-    ;({ autoAvoidWillAggro, autoHostile, autoPriority, priorityMobTypes } = followerConfig =
+    ;({ autoHostile, autoPriority, priorityMobTypes } = followerConfig =
       get('follower-config') || followerConfig)
     const { hp, max_hp, rip } = character
     if (rip) {
@@ -171,7 +170,12 @@
   //
   // FUNCTIONS
   //
-  const isInjured = mob => mob && mob.hp < mob.max_hp - character.attack && !mob.rip
+  const isInjured = player => {
+    if (!player || player.rip) return
+    // if (mobToAttack)
+    return player.hp < player.max_hp - character.attack
+    // return player.hp < player.max_hp
+  }
 
   const followOrStop = () => {
     if (!leader?.map || !character?.map) return
@@ -251,6 +255,16 @@
     moveDirection = distance > 0 ? 'in' : 'out'
   }
 
+  const moveClockwise = (mob, distance) => {
+    const [x, y] = unitVector(character, mob)
+    moveToward({ map: mob.map, x: character.real_x - y, y: character.real_y + x }, distance)
+  }
+
+  const moveCounterclockwise = (mob, distance) => {
+    const [x, y] = unitVector(character, mob)
+    moveToward({ map: mob.map, x: character.real_x + y, y: character.real_y - x }, distance)
+  }
+
   const safeRangeFor = mob => {
     if (autoMelee && mob === mobToAttack) return 0
     if (mob.attack === 0 || (mob.target && mob.target !== character.id) || isSquishy(mob)) return 0
@@ -306,6 +320,11 @@
   //
   // HOOKS
   //
+  on_combined_damage = () =>
+    parent.party_list.findIndex(x => x === character.id) % 2
+      ? moveClockwise(mobToAttack, rangeChunk)
+      : moveCounterclockwise(mobToAttack, rangeChunk)
+
   on_party_invite = key => {
     if (characterKeys.includes(key)) accept_party_invite(key)
   }

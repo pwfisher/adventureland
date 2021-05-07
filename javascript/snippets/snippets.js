@@ -78,17 +78,23 @@ character.items.filter(Boolean).forEach((item, slot) => {
 
 smart_move('potions')
 
-const skills = { ...G.skills }
-Object.keys(skills).forEach(key => {
-  if (!/(hp|mp)/.test(key)) delete skills(key)
-})
+const regenSkills = Object.entries(G.skills)
+  .filter(([key]) => /(\b|_)(hp|mp)(\b|_)/.test(key))
+  .reduce((acc, [k, v]) => ({ ...acc, [k]: v }), {})
 
-Object.fromEntries(
+const targetAutomatronTypes = Object.fromEntries(
   Object.entries(G.monsters).filter(([monsterType]) => monsterType.includes('target'))
 )
 
-Object.entries(G.skills)
+const priestSkills = Object.entries(G.skills)
   .filter(([_, o]) => o.class?.includes('priest'))
   .reduce((acc, [k, v]) => ({ ...acc, [k]: v }), {})
+
+const monsterSkills = Object.entries(G.skills)
+  .filter(([_, o]) => o.type === 'monster')
+  .reduce((acc, [k, v]) => ({ ...acc, [k]: v }), {})
+
+const result = { monsterSkills, priestSkills, regenSkills, targetAutomatronTypes }
+console.info(result)
 
 // end snippets.js

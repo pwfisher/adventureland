@@ -19,7 +19,9 @@
   // master controls
   const autoMap = ''
   const autoMob = '' // finicky
-  const manualMode = false // || TEMPORARILY_TRUE
+  const manualMode = false || TEMPORARILY_TRUE
+
+  // todo: do not attack oneeye
 
   // ------
 
@@ -29,17 +31,17 @@
   const autoElixir = true
   const autoHeal = true
   const autoHostile = false
-  const autoKite = !isMeleeType // && TEMPORARILY_FALSE
+  const autoKite = !isMeleeType && TEMPORARILY_FALSE
   const autoKitePath = true
   const autoLoot = true
-  const autoMelee = isMeleeType // || TEMPORARILY_TRUE
+  const autoMelee = isMeleeType || TEMPORARILY_TRUE
   const autoParty = true // && TEMPORARILY_FALSE
   const autoPotion = true
   const autoPriority = true
-  const autoRealm = !manualMode // && TEMPORARILY_FALSE
+  const autoRealm = !manualMode && TEMPORARILY_FALSE
   const autoRealmMinutes = 5 // * 60 * 24
   const autoRespawn = true
-  const autoRest = true
+  const autoRest = true && TEMPORARILY_FALSE
   const autoSquish = true
   const autoStalk = !manualMode
   const characterKeys = [
@@ -256,7 +258,7 @@
     if (autoMap && character.map !== autoMap) {
       console.debug(`MOVE: autoMap, ${autoMap}`)
       smartMove(autoMap)
-    } else if (autoMob && !getNearestMonster({ type: autoMob })) {
+    } else if (autoMob && !getNearestMonster({ mtype: autoMob })) {
       console.debug(`MOVE: autoMob, ${autoMob}`)
       smartMove(autoMob)
     } else if (
@@ -268,7 +270,7 @@
     ) {
       console.debug(`MOVE: escape, ${escapeMob.mtype}`)
       moveDirection = 'escape'
-      smartMoveToward(
+      moveToward(
         escapeMob,
         distance(character, escapeMob) + safeRangeFor(escapeMob) + character.speed * 2
       )
@@ -339,7 +341,11 @@
   //
   // FUNCTIONS
   //
-  const isInjured = mob => mob && mob.hp < mob.max_hp - character.attack && !mob.rip
+  const isInjured = player => {
+    if (!player || player.rip) return
+    if (mobToAttack) return player.hp < player.max_hp - character.attack
+    return player.hp < player.max_hp
+  }
 
   const canKite = mob => character.speed > mob.speed && character.range > mob.range
 
@@ -394,7 +400,7 @@
 
   const getRadarPings = (props = {}) =>
     radar.filter(({ mob }) => {
-      // if (mob.name === 'Target Automatron') return
+      if (mob.name === 'Target Automatron') return
       if (mob.map !== character.map) return
       if (props.aggro && mob.aggro <= 0.1) return
       if (props.is_juicy && mob.xp < mob.hp * 2) return
@@ -498,7 +504,7 @@
 
   const safeRangeFor = mob => {
     if (mob.attack === 0 || (mob.target && mob.target !== character.id)) return 0
-    if (mob.attack < character.attack) return 0
+    if (mob.attack < character.attack && mob.range > character.range) return 0
     return mob.range + mob.speed
   }
 

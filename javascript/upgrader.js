@@ -24,7 +24,7 @@
   const autoSell = true
   const autoSellLevelMax = 3
   const autoStand = true
-  const autoTown = false
+  const autoTown = true
   const autoUpgrade = true
   const autoUpgradeBuyType = '' // item key, e.g. 'staff'
   const autoUpgradeMaxGrade = 1
@@ -34,11 +34,8 @@
     cape: 3,
     coat: 8,
     ecape: 6,
-    helmet: 8,
-    pants: 8,
     pickaxe: 3,
     rod: 3,
-    shoes: 8,
   }
   const bankPackKeys = ['items0', 'items1']
   const characterKeys = [
@@ -61,21 +58,30 @@
     'beewings',
     'cclaw',
     'crabclaw',
+    'cshell',
+    'coat',
     'coat1',
     'dagger',
+    'dstones',
     'frogt',
+    'gloves',
     'gloves1',
     'gslime',
     'harmor',
     'hboots',
+    'helmet',
     'helmet1',
     'hgloves',
     'hhelmet',
     'hpants',
     'ijx',
+    'lspores',
+    'pants',
     'pants1',
     'shadowstone',
+    'shoes',
     'shoes1',
+    'slimestaff',
     'spear',
     'spores',
     'sstinger',
@@ -87,6 +93,7 @@
   //
   // STATE
   //
+  const resetState = () => {}
 
   //
   // INIT
@@ -156,12 +163,12 @@
   //
   // Functions
   //
-  let mluckedAt = Date.now()
+  let usedMluckAt = Date.now()
 
   function useMluck() {
     if (isOnCooldown('mluck') || character.mp < 10) return
     const now = Date.now()
-    if (now - mluckedAt < 1000) return
+    if (now - usedMluckAt < 1000) return
     if (character.s?.mluck?.f !== character.name) return use_skill('mluck', character)
     return Object.entries(parent.entities)
       .filter(([_, mob]) => mob.player && !mob.npc)
@@ -175,14 +182,14 @@
       })
   }
 
-  let lastMinedAt = 0
+  let usedMiningAt = 0
 
   function useMining() {
     if (isOnCooldown('mining') || character.slots.mainhand.name !== 'pickaxe') return
     const now = Date.now()
-    if (now - lastMinedAt < G.skills.mining.cooldown) return
+    if (now - usedMiningAt < G.skills.mining.cooldown) return
     use_skill('mining')
-    lastMinedAt = now
+    usedMiningAt = now
   }
 
   function exchangeSlot0() {
@@ -190,7 +197,9 @@
     if (isExchangeableType(character.items[0]?.name)) exchange(0)
   }
 
-  const openStandInTown = () => smart_move({ map: 'main', x: 101, y: -145 }, () => move(101, -144))
+  function openStandInTown() {
+    smart_move({ map: 'main', x: 101, y: -145 }, () => move(101, -144))
+  }
 
   const partyUp = () =>
     partyKeys.forEach(key => {
