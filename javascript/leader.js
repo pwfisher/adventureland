@@ -20,13 +20,13 @@
   // master controls
   const autoMap = ''
   const autoMob = '' // finicky
-  const manualMode = false || TEMPORARILY_TRUE
+  const manualMode = false // || TEMPORARILY_TRUE
 
   // todo: do not attack oneeye
 
   // ------
 
-  const autoAttack = true && TEMPORARILY_FALSE
+  const autoAttack = true // && TEMPORARILY_FALSE
   const autoAvoidWillAggro = !isMeleeType && !manualMode // && TEMPORARILY_FALSE
   const autoBank = true && TEMPORARILY_FALSE
   const autoBankAtGold = 300 * 1000
@@ -34,10 +34,10 @@
   const autoElixir = true
   const autoHeal = true
   const autoHostile = false
-  const autoKite = !isMeleeType && TEMPORARILY_FALSE
+  const autoKite = !isMeleeType // && TEMPORARILY_FALSE
   const autoKitePath = true
   const autoLoot = true
-  const autoMelee = isMeleeType || TEMPORARILY_TRUE
+  const autoMelee = isMeleeType // || TEMPORARILY_TRUE
   const autoParty = true // && TEMPORARILY_FALSE
   const autoPotion = true
   const autoPriority = true
