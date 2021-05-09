@@ -18,33 +18,33 @@
   //
 
   // master controls
-  const autoMap = 'arena'
+  const autoMap = ''
   const autoMob = '' // finicky
-  const manualMode = false // || TEMPORARILY_TRUE
+  const manualMode = false || TEMPORARILY_TRUE
 
   // todo: do not attack oneeye
 
   // ------
 
-  const autoAttack = true // && TEMPORARILY_FALSE
+  const autoAttack = true && TEMPORARILY_FALSE
   const autoAvoidWillAggro = !isMeleeType && !manualMode // && TEMPORARILY_FALSE
-  const autoBank = true
-  const autoBankAtGold = (1000 * 1000) / 3
+  const autoBank = true && TEMPORARILY_FALSE
+  const autoBankAtGold = 300 * 1000
   const autoDefend = true
   const autoElixir = true
   const autoHeal = true
   const autoHostile = false
-  const autoKite = !isMeleeType // && TEMPORARILY_FALSE
+  const autoKite = !isMeleeType && TEMPORARILY_FALSE
   const autoKitePath = true
   const autoLoot = true
-  const autoMelee = isMeleeType // || TEMPORARILY_TRUE
+  const autoMelee = isMeleeType || TEMPORARILY_TRUE
   const autoParty = true // && TEMPORARILY_FALSE
   const autoPotion = true
   const autoPriority = true
-  const autoRealm = !manualMode // && TEMPORARILY_FALSE
+  const autoRealm = !manualMode && TEMPORARILY_FALSE
   const autoRealmMinutes = 5 // * 60 * 24
   const autoRespawn = true
-  const autoRest = true // && TEMPORARILY_FALSE
+  const autoRest = true && TEMPORARILY_FALSE
   const autoSquish = true
   const autoStalk = !manualMode
   const characterKeys = [
