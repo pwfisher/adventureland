@@ -11,15 +11,16 @@
   const TEMPORARILY_FALSE = false
   const TEMPORARILY_TRUE = true
   console.log({ TEMPORARILY_FALSE, TEMPORARILY_TRUE })
+  console.clear()
 
   //
   // CONFIG
   //
 
   // master controls
-  const autoMap = ''
+  const autoMap = 'arena'
   const autoMob = '' // finicky
-  const manualMode = false || TEMPORARILY_TRUE
+  const manualMode = false // || TEMPORARILY_TRUE
 
   // todo: do not attack oneeye
 
@@ -27,21 +28,23 @@
 
   const autoAttack = true // && TEMPORARILY_FALSE
   const autoAvoidWillAggro = !isMeleeType && !manualMode // && TEMPORARILY_FALSE
+  const autoBank = true
+  const autoBankAtGold = (1000 * 1000) / 3
   const autoDefend = true
   const autoElixir = true
   const autoHeal = true
   const autoHostile = false
-  const autoKite = !isMeleeType && TEMPORARILY_FALSE
+  const autoKite = !isMeleeType // && TEMPORARILY_FALSE
   const autoKitePath = true
   const autoLoot = true
-  const autoMelee = isMeleeType || TEMPORARILY_TRUE
+  const autoMelee = isMeleeType // || TEMPORARILY_TRUE
   const autoParty = true // && TEMPORARILY_FALSE
   const autoPotion = true
   const autoPriority = true
-  const autoRealm = !manualMode && TEMPORARILY_FALSE
+  const autoRealm = !manualMode // && TEMPORARILY_FALSE
   const autoRealmMinutes = 5 // * 60 * 24
   const autoRespawn = true
-  const autoRest = true && TEMPORARILY_FALSE
+  const autoRest = true // && TEMPORARILY_FALSE
   const autoSquish = true
   const autoStalk = !manualMode
   const characterKeys = [
@@ -122,14 +125,19 @@
     setTimeout(changeServer, autoRealmMinutes * 60 * 1000)
     setTimeout(() => game_log('Realm hop in 60 seconds'), (autoRealmMinutes - 1) * 60 * 1000)
   }
+  if (autoBank) {
+    const bankLoop = async () => {
+      if (character.gold > autoBankAtGold) await useBank()
+      setTimeout(bankLoop, tickDelay)
+    }
+    bankLoop()
+  }
 
   ;({ character: previousLeader } = get('leader-state') ?? {})
   if (previousLeader.id !== character.id) {
     game_log(`Leader was ${previousLeader.id}, now ${character.id}`)
     setLeaderState()
   }
-
-  console.clear()
 
   //
   // TICK
@@ -533,6 +541,94 @@
     const [region, identifier] = servers[Math.floor(Math.random() * servers.length)].split('-')
     change_server(region, identifier)
   }
+
+  function useBank() {
+    return new Promise(resolve => {
+      parent.party_list.forEach(giveMeYourStuff)
+      smart_move('bank', () => {
+        bank_deposit(123456789)
+        console.log('bankStoreAll')
+        bankStoreAll()
+        resolve()
+      })
+    })
+  }
+
+  function giveMeYourStuff(name) {
+    const { id } = character
+    if (name === id) return
+    const snippet = `
+      parent.socket.emit('send', { name: '${id}', gold: 1234567890 })
+      for (let i = 0; i < 35; i++) parent.socket.emit('send', { name: '${id}', num: i, q: 9999 })
+    `
+    parent.character_code_eval(name, snippet)
+  }
+
+  const bagSlot = (item, bag) => bagSlots(item, bag)?.[0]
+  const bagSlots = (arg, bag) =>
+    bag.map((o, slot) => (itemFilter(arg)(o) ? slot : null)).filter(isNotNull)
+  const bankPack = x => (character.bank || {})[x] ?? []
+  const bankPackKeys = Object.keys(bank_packs).filter(x => bank_packs[x][0] === 'bank')
+  const getPackWithSpace = () => bankPackKeys.find(openSlotInBankPack)
+  const isNotNull = x => x !== null
+  const isNull = x => x === null
+  const isStackableType = type => type && G.items[type]?.s
+  const itemFilter = arg => o =>
+    o?.name === (arg.name || arg.type) && (arg.level === undefined || o.level === arg.level)
+  const openSlotInBankPack = key => bankPack(key).findIndex(isNull)
+  const openSlots = bag => bag.map((o, slot) => (o ? null : slot)).filter(isNotNull)
+
+  const bankStoreItem = (item, slot) => {
+    if (!item) return
+    console.log('bankStoreItem', { item, slot })
+    let stacked = false
+    if (isStackableType(item.name)) {
+      bankPackKeys.some(packKey => {
+        if (!character.bank[packKey]) return
+        const packSlot = bagSlot(item, bankPack(packKey))
+        if (packSlot && can_stack(item, bankPack(packKey)[packSlot])) {
+          console.log(`stacking ${item.name}`)
+          let openPackSlot = openSlotInBankPack(packKey)
+          console.log(`openSlotInBankPack('${packKey}')`, openPackSlot)
+          if (openPackSlot > -1) {
+            bank_store(slot, packKey, openPackSlot)
+            parent.socket.emit('bank', {
+              operation: 'move',
+              pack: packKey,
+              a: openPackSlot,
+              b: packSlot,
+            })
+            stacked = true
+            return true
+          } // else
+          const openSlot = openSlots(character.items)[0]
+          if (openSlot > -1) {
+            console.log(`can’t stack in full pack, but can swap to open slot`)
+            const swapSlot = (packSlot + 1) % bagSize
+            bank_retrieve(packKey, swapSlot, openSlot)
+            bank_store(slot, packKey, swapSlot)
+            parent.socket.emit('bank', {
+              operation: 'move',
+              pack: packKey,
+              a: swapSlot,
+              b: packSlot,
+            })
+            bank_store(openSlot, packKey, swapSlot)
+            stacked = true
+            return true
+          } else {
+            game_log('stack failed: need open slot in bank or inventory')
+          }
+        }
+      })
+    }
+    if (!stacked) {
+      const packKey = getPackWithSpace()
+      console.log('bankStoreItem !stacked', { packKey, slot })
+      if (packKey) bank_store(slot, packKey)
+    }
+  }
+  const bankStoreAll = () => character.items.slice(0, 28).forEach(bankStoreItem)
 
   //
   // HOOKS

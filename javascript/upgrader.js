@@ -31,7 +31,7 @@
   const autoUpgradeMaxLevel = 6 // 7
   const autoUpgradeLevels = {
     bataxe: 5,
-    cape: 3,
+    cape: 0,
     coat: 8,
     ecape: 6,
     pickaxe: 3,

@@ -86,6 +86,10 @@ const targetAutomatronTypes = Object.fromEntries(
   Object.entries(G.monsters).filter(([monsterType]) => monsterType.includes('target'))
 )
 
+const mageSkills = Object.entries(G.skills)
+  .filter(([_, o]) => o.class?.includes('mage'))
+  .reduce((acc, [k, v]) => ({ ...acc, [k]: v }), {})
+
 const priestSkills = Object.entries(G.skills)
   .filter(([_, o]) => o.class?.includes('priest'))
   .reduce((acc, [k, v]) => ({ ...acc, [k]: v }), {})
@@ -94,7 +98,7 @@ const monsterSkills = Object.entries(G.skills)
   .filter(([_, o]) => o.type === 'monster')
   .reduce((acc, [k, v]) => ({ ...acc, [k]: v }), {})
 
-const result = { monsterSkills, priestSkills, regenSkills, targetAutomatronTypes }
+const result = { mageSkills, monsterSkills, priestSkills, regenSkills, targetAutomatronTypes }
 console.info(result)
 
 // end snippets.js

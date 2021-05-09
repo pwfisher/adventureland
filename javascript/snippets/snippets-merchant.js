@@ -18,7 +18,7 @@
   const isNotNull = x => x !== null
 
   // Bank inventory in packs "items0", "items1", etc. Wrapping some game functions for friendlier argument names.
-  const openSlotInBankPack = key => bankPack(key).find(isNull)
+  const openSlotInBankPack = key => bankPack(key).findIndex(isNull)
   const getPackWithSpace = () => bankPackKeys.find(openSlotInBankPack)
   const bankWithdrawAll = () => bank_withdraw(123456789)
   const sellAll = () =>
