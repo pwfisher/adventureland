@@ -18,7 +18,7 @@
   //
 
   // master controls
-  const autoMap = 'arena'
+  const autoMap = 'mansion'
   const autoMob = '' // finicky
   const manualMode = false // || TEMPORARILY_TRUE
 
@@ -38,10 +38,10 @@
   const autoKitePath = true
   const autoLoot = true
   const autoMelee = isMeleeType // || TEMPORARILY_TRUE
-  const autoParty = true // && TEMPORARILY_FALSE
+  const autoParty = true && TEMPORARILY_FALSE
   const autoPotion = true
   const autoPriority = true
-  const autoRealm = !manualMode // && TEMPORARILY_FALSE
+  const autoRealm = !manualMode && TEMPORARILY_FALSE
   const autoRealmMinutes = 5 // * 60 * 24
   const autoRespawn = true
   const autoRest = true // && TEMPORARILY_FALSE
@@ -194,13 +194,22 @@
     updateRadar()
     const aggroMob = getNearestMonster({ target: character.id, min_att: 1 })
     const hostileMob = getNearestHostile()
-    const juicyMob = getNearestMonster({ is_juicy: true, min_xp: preyXpMin, max_att: preyAtkMax })
+    const juicyMob = getNearestMonster({
+      is_juicy: true,
+      min_xp: preyXpMin,
+      max_att: preyAtkMax,
+      no_target: true,
+    })
     const lockMob = get_targeted_monster()
     const partyMob = null // not implemented
-    const preyMob = getNearestMonster({ min_xp: preyXpMin, max_att: preyAtkMax })
+    const preyMob = getNearestMonster({ min_xp: preyXpMin, max_att: preyAtkMax, no_target: true })
     const priorityMob = getPriorityMob()
-    const squishyMob = getNearestMonster({ min_xp: 1, max_hp: character.attack * 0.95 })
-    const willAggroMob = getNearestMonster({ aggro: true, min_att: 1 })
+    const squishyMob = getNearestMonster({
+      min_xp: 1,
+      max_hp: character.attack * 0.95,
+      no_target: true,
+    })
+    const willAggroMob = getNearestMonster({ aggro: true, min_att: 1, no_target: true })
     mobs = {
       aggroMob,
       hostileMob,

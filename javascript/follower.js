@@ -115,8 +115,12 @@
     const lockMob = get_targeted_monster()
     const partyMob = getNearestMonster({ target: leader?.id }) // should include any party member targeted
     const priorityMob = getPriorityMob()
-    const squishyMob = getNearestMonster({ min_xp: 1, max_hp: character.attack * 0.95 })
-    const willAggroMob = getNearestMonster({ aggro: true, min_att: 1 })
+    const squishyMob = getNearestMonster({
+      min_xp: 1,
+      max_hp: character.attack * 0.95,
+      no_target: true,
+    })
+    const willAggroMob = getNearestMonster({ aggro: true, min_att: 1, no_target: true })
     mobs = {
       aggroMob,
       hostileMob,
