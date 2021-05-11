@@ -36,6 +36,11 @@
     ecape: 6,
     pickaxe: 3,
     rod: 3,
+    wattire: 8,
+    wbreeches: 8,
+    wcap: 8,
+    wgloves: 8,
+    wshoes: 8,
   }
   const bankPackKeys = ['items0', 'items1']
   const characterKeys = [
@@ -54,6 +59,7 @@
   const tickDelay = 250
 
   const autoSellTypes = [
+    'bandages',
     'bwing',
     'beewings',
     'cclaw',
@@ -78,6 +84,7 @@
     'lspores',
     'pants',
     'pants1',
+    'rattail',
     'shadowstone',
     'shoes',
     'shoes1',

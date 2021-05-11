@@ -1,3 +1,4 @@
 .alclient/credentials.json
 .auth_token
 node_modules
+.secret

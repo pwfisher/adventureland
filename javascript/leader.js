@@ -18,7 +18,7 @@
   //
 
   // master controls
-  const autoMap = ''
+  const autoMap = 'arena'
   const autoMob = '' // finicky
   const manualMode = false // || TEMPORARILY_TRUE
 
@@ -28,7 +28,7 @@
 
   const autoAttack = true // && TEMPORARILY_FALSE
   const autoAvoidWillAggro = !isMeleeType && !manualMode // && TEMPORARILY_FALSE
-  const autoBank = true && TEMPORARILY_FALSE
+  const autoBank = true // && TEMPORARILY_FALSE
   const autoBankAtGold = 300 * 1000
   const autoDefend = true
   const autoElixir = true
@@ -41,10 +41,10 @@
   const autoParty = true // && TEMPORARILY_FALSE
   const autoPotion = true
   const autoPriority = true
-  const autoRealm = !manualMode && TEMPORARILY_FALSE
+  const autoRealm = !manualMode // && TEMPORARILY_FALSE
   const autoRealmMinutes = 5 // * 60 * 24
   const autoRespawn = true
-  const autoRest = true && TEMPORARILY_FALSE
+  const autoRest = true // && TEMPORARILY_FALSE
   const autoSquish = true
   const autoStalk = !manualMode
   const characterKeys = [
@@ -127,7 +127,11 @@
   }
   if (autoBank) {
     const bankLoop = async () => {
-      if (character.gold > autoBankAtGold) await useBank()
+      if (
+        character.gold > autoBankAtGold ||
+        character.items.slice(0, 28).filter(isNull).length === 0
+      )
+        await useBank()
       setTimeout(bankLoop, tickDelay)
     }
     bankLoop()
