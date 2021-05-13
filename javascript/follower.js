@@ -82,7 +82,7 @@
       if (autoRespawn) respawn()
       return
     }
-    if (smart.moving) resetState()
+    if (smart.moving && moveDirection !== 'map') resetState()
 
     if (autoElixir) useElixir()
     if (autoLoot) loot()
@@ -192,11 +192,29 @@
     const leaderGoingTo = { map, x: going_x, y: going_y }
     const rangeLeaderGoingTo = distance(character, leaderGoingTo)
 
-    if (map !== character.map) smartMove(leader)
-    else if (!smart.moving && rangeLeaderGoingTo > rangeFollow) {
+    if (map !== character.map) {
+      const door = nearestDoor(map)
+      if (door) {
+        console.log({ door })
+        const [x, y] = G.maps[map].spawns[door[5]]
+        smartMove({ map, x, y })
+        moveDirection = 'map'
+      } else {
+        smartMove(leader)
+        moveDirection = 'map'
+      }
+    } else if (!smart.moving && rangeLeaderGoingTo > rangeFollow) {
       moveToward(leaderGoingTo, Math.min(rangeChunk, rangeLeaderGoingTo))
     }
   }
+
+  const nearestDoor = toMap =>
+    G.maps[character.map].doors
+      .filter(([_x, _y, _h, _w, map]) => map === toMap)
+      .map(doorInfo => ({ doorInfo, range: distance(character, getDoorPoint(doorInfo)) }))
+      .reduce(minRange, { range: Infinity }).doorInfo
+
+  const getDoorPoint = ([x, y, _h, _w, map]) => ({ map, x, y })
 
   // "radar" caches "radar pings" [{ mob, range }] for performance
   const updateRadar = () => {
