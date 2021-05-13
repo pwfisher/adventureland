@@ -1,18 +1,23 @@
 ;(async function () {
   let lastPotion = new Date()
-  set_message('Looper')
+  set_message('shootAndScoot')
 
   setInterval(shootAndScoot, 1000)
-  setInterval(usePotion, 250)
+  setInterval(() => {
+    usePotion()
+    loot()
+  }, 250)
 
   //
   // FUNCTIONS
   //
   function shootAndScoot() {
-    attack(get_targeted_monster())
     // Hardcoded to a specific door
-    if (character.map === 'level2n') parent.socket.emit('transport', { to: 'level2w', s: 2 })
-    else parent.socket.emit('transport', { to: 'level2n', s: 1 })
+    if (character.map === 'level2n') {
+      const mob = get_targeted_monster()
+      if (mob) attack(mob)
+      parent.socket.emit('transport', { to: 'level2w', s: 2 })
+    } else parent.socket.emit('transport', { to: 'level2n', s: 1 })
   }
 
   function usePotion() {
@@ -41,4 +46,4 @@
     )
   }
 })()
-// end looper.js
+// end shootAndScoot.js
