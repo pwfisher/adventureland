@@ -14,7 +14,7 @@
   //
   let autoHostile = false
   let autoPriority = true
-  let priorityMobTypes = ['franky', 'froggie']
+  let priorityMobTypes = ['franky', 'froggie', 'goldenbat']
 
   const autoAttack = true
   const autoDefend = true
@@ -54,7 +54,7 @@
   let leaderSmart
   let mobs = {}
   let mobToAttack = null
-  let moveDirection = null // null | 'in' | 'out' | 'map'
+  let moveDirection = null // null | 'in' | 'out' | 'smart'
   let radar = null // [{ mob: Entity, range: Number }]
   let whichMob = null
 
@@ -75,7 +75,8 @@
     ;({ character: leader, smart: leaderSmart } = get('leader-state') ?? {})
     ;({ autoHostile, autoPriority, priorityMobTypes } = followerConfig =
       get('follower-config') || followerConfig)
-    const { hp, max_hp, rip } = character
+    const { hp, items, max_hp, rip, slots } = character
+
     if (rip) {
       resetState()
       if (autoRespawn) respawn()
@@ -168,7 +169,8 @@
     const uiWhich = whichMob?.slice(0, 5) || uiBlank
     const uiDir = smart.moving ? 'smart' : kitingMob ? 'kite' : moveDirection || uiBlank
     set_message(`${uiRange} ${uiWhich} ${uiDir}`)
-    set(`${character.id}:items`, character.items)
+    const updatedAt = new Date()
+    set(character.id, { items, slots, updatedAt })
   }
 
   //

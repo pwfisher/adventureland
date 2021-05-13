@@ -1,4 +1,4 @@
-;(function () {
+;(async function () {
   /**
    * Leader
    *
@@ -16,13 +16,9 @@
   //
   // CONFIG
   //
-
-  // master controls
-  const autoMap = 'mansion'
-  const autoMob = '' // finicky
+  const autoMap = 'arena'
+  const autoMob = ''
   const manualMode = false // || TEMPORARILY_TRUE
-
-  // todo: do not attack oneeye
 
   // ------
 
@@ -38,10 +34,10 @@
   const autoKitePath = true
   const autoLoot = true
   const autoMelee = isMeleeType // || TEMPORARILY_TRUE
-  const autoParty = true && TEMPORARILY_FALSE
+  const autoParty = true // && TEMPORARILY_FALSE
   const autoPotion = true
   const autoPriority = true
-  const autoRealm = !manualMode && TEMPORARILY_FALSE
+  const autoRealm = !manualMode // && TEMPORARILY_FALSE
   const autoRealmMinutes = 5 // * 60 * 24
   const autoRespawn = true
   const autoRest = true // && TEMPORARILY_FALSE
@@ -66,6 +62,7 @@
     'franky',
     'froggie',
     'greenjr',
+    'goldenbat',
     'phoenix',
     'skeletor',
     'wabbit',
@@ -79,7 +76,7 @@
 
   // type KitePath = Point[]; type Point = { x: number, y: number }
   // const kitePaths: Record<MapKey, KitePath[]>
-  // i.e. { cave: [ { x: 300, y: 475 }, ... ] }
+  // i.e. { cave: [ [{ x: 300, y: 475 }, ...] ... ] }
   load_code('kitePaths')
 
   // update config in local storage
@@ -120,7 +117,7 @@
   //
   // INIT
   //
-  if (autoParty) startParty()
+  if (autoParty) await startParty()
   if (autoRealm) {
     setTimeout(changeServer, autoRealmMinutes * 60 * 1000)
     setTimeout(() => game_log('Realm hop in 60 seconds'), (autoRealmMinutes - 1) * 60 * 1000)
@@ -130,11 +127,16 @@
       if (
         character.gold > autoBankAtGold ||
         character.items.slice(0, 28).filter(isNull).length === 0
-      )
-        await useBank()
+      ) {
+        try {
+          await useBank()
+        } catch (e) {
+          console.error(e)
+        }
+      }
       setTimeout(bankLoop, tickDelay)
     }
-    bankLoop()
+    bankLoop() // no await
   }
 
   ;({ character: previousLeader } = get('leader-state') ?? {})
@@ -151,7 +153,7 @@
     const { character: characterLast } = get('leader-state') ?? {}
     hasMoved =
       character.real_x !== characterLast?.real_x || character.real_y !== characterLast?.real_y
-    const { hp, max_hp, rip } = character
+    const { hp, items, max_hp, rip, slots } = character
 
     if (characterLast.id !== character.id) return game_log(`Extra leader: ${character.id}`)
 
@@ -277,10 +279,10 @@
     const escapeMob = mobToAttack ?? willAggroMob ?? aggroMob
 
     if (autoMap && character.map !== autoMap) {
-      console.debug(`MOVE: autoMap, ${autoMap}`)
+      console.debug('MOVE: autoMap, ' + autoMap)
       smartMove(autoMap)
     } else if (autoMob && !getNearestMonster({ mtype: autoMob })) {
-      console.debug(`MOVE: autoMob, ${autoMob}`)
+      console.debug('MOVE: autoMob, ' + autoMob)
       smartMove(autoMob)
     } else if (
       moveDirection &&
@@ -289,7 +291,7 @@
       escapeMob &&
       moveDirection !== 'escape'
     ) {
-      console.debug(`MOVE: escape, ${escapeMob.mtype}`)
+      console.debug('MOVE: escape, ' + escapeMob.mtype)
       moveDirection = 'escape'
       moveToward(
         escapeMob,
@@ -302,7 +304,7 @@
       canKite(aggroMob) &&
       radarRange(aggroMob) <= safeRangeFor(aggroMob)
     ) {
-      console.debug(`MOVE: kite, ${aggroMob.mtype}`)
+      console.debug('MOVE: kite, ' + aggroMob.mtype)
       kite(aggroMob)
     } else if (
       autoAvoidWillAggro &&
@@ -310,7 +312,7 @@
       willAggroMob &&
       radarRange(willAggroMob) <= safeRangeFor(willAggroMob)
     ) {
-      console.debug(`MOVE: avoid, ${willAggroMob.mtype}`)
+      console.debug('MOVE: avoid, ' + willAggroMob.mtype)
       moveToward(willAggroMob, -rangeChunk)
     } else if (autoStalk && mobToAttack && whichMob !== 'squishy') {
       if (
@@ -318,14 +320,14 @@
         moveDirection === 'in' &&
         radarRange(mobToAttack) <= Math.max(rangeStalk[1], safeRangeFor(mobToAttack))
       ) {
-        console.debug(`MOVE: stalk in, stop, ${mobToAttack.mtype}`)
+        console.debug('MOVE: stalk in, stop, ' + mobToAttack.mtype)
         stop() // in goldilocks zone
         moveDirection = null
       } else if (
         moveDirection === 'out' &&
         radarRange(mobToAttack) >= Math.max(rangeStalk[0], safeRangeFor(mobToAttack))
       ) {
-        console.debug(`MOVE: stalk out, stop, ${mobToAttack.mtype}`)
+        console.debug('MOVE: stalk out, stop, ' + mobToAttack.mtype)
         stop() // in goldilocks zone
         moveDirection = null
       } else if (
@@ -333,10 +335,10 @@
         canKite(mobToAttack) &&
         radarRange(mobToAttack) <= safeRangeFor(mobToAttack)
       ) {
-        console.debug(`MOVE: stalk out, start, ${mobToAttack.mtype}`)
+        console.debug('MOVE: stalk out, start, ' + mobToAttack.mtype)
         moveToward(mobToAttack, -rangeChunk)
       } else if (radarRange(mobToAttack) > character.range) {
-        console.debug(`MOVE: stalk in, start, ${mobToAttack.mtype}`)
+        console.debug('MOVE: stalk in, start, ' + mobToAttack.mtype)
         moveToward(mobToAttack, rangeChunk)
       } else {
         // no autoMove (free manual control) within Goldilocks stalking range
@@ -349,14 +351,20 @@
     //
     const uiRange = radarRange(mobToAttack) ? Math.round(radarRange(mobToAttack)) : uiBlank
     const uiWhich = whichMob?.slice(0, 5) || uiBlank
-    const uiDir = smart.moving ? 'smart' : kitingMob ? 'kite' : moveDirection || uiBlank
+    const uiDir = smart.moving
+      ? 'smart'
+      : kitePathPoint
+      ? 'path'
+      : kitingMob
+      ? 'kite'
+      : moveDirection || uiBlank
     set_message(`${uiRange} ${uiWhich} ${uiDir}`)
-    // set_message(`smart: ${smart.moving}`)
 
     if (character.xp < characterLast.xp) game_log(`Lost ${characterLast.xp - character.xp} xp`)
 
     setLeaderState()
-    set(`${character.id}:items`, character.items)
+    const updatedAt = new Date()
+    set(character.id, { items, slots, updatedAt })
   }
 
   //
@@ -534,17 +542,29 @@
     if (!smart.moving) smart_move(destination, on_done)
   }
 
-  function startParty() {
-    partyKeys.forEach((name, index) => {
-      if (!get_party()[name] && !get_player(name)) {
-        setTimeout(() => start_character(name, 'Follower'), index * timeStartup)
-        setTimeout(() => comeToMe(name), index * timeStartup + timeStartup)
+  async function startParty() {
+    for (let i = 0; i < partyKeys.length; i++) {
+      if (!get_party()[partyKeys[i]] && !get_player(partyKeys[i])) {
+        await startFollower(partyKeys[i])
+      } else {
+        comeToMe(partyKeys[i])
       }
+    }
+  }
+
+  function startFollower(name) {
+    return new Promise(resolve => {
+      start_character(name, 'Follower')
+      setTimeout(() => {
+        comeToMe(name)
+        resolve()
+      }, timeStartup)
     })
   }
 
   function comeToMe(name) {
     const { map, real_x, real_y } = character
+    if (!map) return game_log('[comeToMe] error: no map')
     const snippet = `smart_move({ map: '${map}', x: ${real_x}, y: ${real_y}})`
     parent.character_code_eval(name, snippet)
   }
@@ -556,9 +576,11 @@
   }
 
   function useBank() {
-    return new Promise(resolve => {
+    return new Promise((resolve, reject) => {
       parent.party_list.forEach(giveMeYourStuff)
+      moveDirection = 'bank'
       smart_move('bank', () => {
+        if (character.map !== 'bank') return reject()
         bank_deposit(123456789)
         console.log('bankStoreAll')
         bankStoreAll()
@@ -648,6 +670,12 @@
   //
   on_party_invite = key => {
     if (characterKeys.includes(key)) accept_party_invite(key)
+  }
+
+  on_cm = (name, data) => {
+    if (!characterKeys.includes(name)) return
+    if (data === 'useBank') return useBank()
+    if (data === 'changeServer') return changeServer()
   }
 
   // replace game’s `set` to strip circular references

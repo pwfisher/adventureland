@@ -1,4 +1,4 @@
-import { MapName } from './enum'
+import { MapKey } from './enum'
 
 /**
  * [0]: The x-position of the door
@@ -11,4 +11,4 @@ import { MapName } from './enum'
  * [7]: ??? Maybe "locked" or "ulocked"?
  * [8]: ??? There's reference to "complicated" in smart_move?
  */
-export type DoorInfo = [number, number, number, number, MapName, number?, number?, string?, string?]
+export type DoorInfo = [number, number, number, number, MapKey, number?, number?, string?, string?]

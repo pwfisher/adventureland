@@ -17,7 +17,6 @@
   const autoExchange = true
   const autoLoot = false
   const autoLuck = true
-  const autoMine = true
   const autoParty = false
   const autoPotion = true
   const autoRespawn = true
@@ -33,7 +32,9 @@
     bataxe: 5,
     cape: 0,
     coat: 8,
+    crossbow: 5,
     ecape: 6,
+    eslippers: 7,
     pickaxe: 3,
     rod: 3,
     wattire: 8,
@@ -82,6 +83,7 @@
     'hpants',
     'ijx',
     'lspores',
+    'maceofthedead',
     'pants',
     'pants1',
     'rattail',
@@ -113,7 +115,7 @@
   //
   setInterval(tick, tickDelay)
   function tick() {
-    const { map, rip } = character
+    const { items, map, rip, slots } = character
 
     if (rip && autoRespawn) {
       respawn()
@@ -137,7 +139,6 @@
       if (autoCompound) compoundAny()
       if (autoExchange) exchangeSlot0()
       if (autoLuck) useMluck()
-      if (autoMine) useMining()
       if (autoSell)
         character.items.forEach((item, slot) => {
           if (
@@ -164,7 +165,8 @@
     //
     // UPDATE
     //
-    set(`${character.id}:items`, character.items)
+    const updatedAt = new Date()
+    set(character.id, { items, slots, updatedAt })
   }
 
   //
@@ -189,14 +191,23 @@
       })
   }
 
-  let usedMiningAt = 0
-
   function useMining() {
-    if (isOnCooldown('mining') || character.slots.mainhand.name !== 'pickaxe') return
-    const now = Date.now()
-    if (now - usedMiningAt < G.skills.mining.cooldown) return
-    use_skill('mining')
-    usedMiningAt = now
+    smart_move({ map: 'tunnel', x: -275, y: -50 }, () => {
+      setTimeout(() => use_skill('mining'), tickDelay)
+    })
+  }
+
+  function useBank() {
+    return new Promise((resolve, reject) => {
+      parent.party_list.forEach(giveMeYourStuff)
+      smart_move('bank', () => {
+        if (character.map !== 'bank') return reject()
+        bank_deposit(123456789)
+        console.log('bankStoreAll')
+        bankStoreAll()
+        resolve()
+      })
+    })
   }
 
   function exchangeSlot0() {
@@ -282,10 +293,12 @@
     if (characterKeys.includes(key)) accept_party_invite(key)
   }
 
-  // For luck
-  // Merchant's Luck: 12%
-  // PVP server: 5%
-  // lucky ring
-  // Wanderer's set, 5 pieces: 16%
+  // adventure.land/comm "Command" input:
+  // send_cm('Dinger', 'openStandInTown')
+  on_cm = (name, data) => {
+    if (!characterKeys.includes(name)) return
+    if (data === 'openStandInTown') return openStandInTown()
+    if (data === 'useMining') return useMining()
+  }
 })()
 // end upgrader.js

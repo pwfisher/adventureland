@@ -101,4 +101,6 @@ const monsterSkills = Object.entries(G.skills)
 const result = { mageSkills, monsterSkills, priestSkills, regenSkills, targetAutomatronTypes }
 console.info(result)
 
+send_cm('Finger', 'changeServer')
+
 // end snippets.js
