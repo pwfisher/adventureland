@@ -476,12 +476,6 @@
     moveDirection = distance > 0 ? 'in' : 'out'
   }
 
-  const smartMoveToward = (mob, distance) => {
-    if (mob.map !== character.map) return
-    const [x, y] = unitVector(character, mob)
-    smart_move({ x: character.x + x * distance, y: character.y + y * distance })
-  }
-
   function unitVector(from, to) {
     const dx = to.x - from.x
     const dy = to.y - from.y
