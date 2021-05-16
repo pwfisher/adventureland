@@ -6,8 +6,6 @@
    * @see https://github.com/kaansoral/adventureland
    */
   const isMeleeType = ['warrior', 'rogue', 'paladin'].includes(character.ctype)
-  const isPaladin = character.ctype === 'paladin'
-  const isPriest = character.ctype === 'priest'
   const TEMPORARILY_FALSE = false
   const TEMPORARILY_TRUE = true
   console.log({ TEMPORARILY_FALSE, TEMPORARILY_TRUE })
@@ -25,7 +23,7 @@
   const autoAttack = true // && TEMPORARILY_FALSE
   const autoAvoidWillAggro = !isMeleeType && !manualMode // && TEMPORARILY_FALSE
   const autoBank = true // && TEMPORARILY_FALSE
-  const autoBankAtGold = 300 * 1000
+  const autoBankAtGold = 100 * 1000
   const autoDefend = true
   const autoElixir = true
   const autoHeal = true
@@ -43,6 +41,7 @@
   const autoRest = true // && TEMPORARILY_FALSE
   const autoSquish = true
   const autoStalk = !manualMode
+  const bankPackKeys = ['items0', 'items1']
   const characterKeys = [
     'Banger',
     'Binger',
@@ -126,7 +125,7 @@
     const bankLoop = async () => {
       if (
         character.gold > autoBankAtGold ||
-        character.items.slice(0, 28).filter(isNull).length === 0
+        character.items.slice(0, 28).filter(x => x === null).length === 0
       ) {
         try {
           await useBank()
@@ -153,7 +152,7 @@
     const { character: characterLast } = get('leader-state') ?? {}
     hasMoved =
       character.real_x !== characterLast?.real_x || character.real_y !== characterLast?.real_y
-    const { hp, items, max_hp, rip, slots } = character
+    const { ctype, hp, items, max_hp, rip, slots } = character
 
     if (characterLast.id !== character.id) return game_log(`Extra leader: ${character.id}`)
 
@@ -179,8 +178,8 @@
     if (isInjured(character)) injuredList.push(character)
 
     if (autoHeal) {
-      if (isPaladin && hp < max_hp && !isOnCooldown('selfheal')) useSkill('selfheal')
-      else if (isPriest && injuredList.length) {
+      if ('paladin' === ctype && hp < max_hp && !isOnCooldown('selfheal')) useSkill('selfheal')
+      else if ('priest' === ctype && injuredList.length) {
         if (!isOnCooldown('partyheal')) useSkill('partyheal')
         else if (!isOnCooldown('heal')) {
           const healTarget = injuredList.sort((a, b) => a.max_hp - a.hp - (b.max_hp - b.hp))[0]
@@ -379,6 +378,7 @@
   const canKite = mob => character.speed > mob.speed && character.range > mob.range
 
   const kite = mob => {
+    if (!mob) console.log('[kite] error: missing mob')
     const paths = kitePaths[character.map]
     const kitePath = closestPath(paths)
     kitingMob = mob
@@ -387,7 +387,8 @@
       else if (distance(mob, kitePathPoint) < safeRangeFor(mob) * 1.5)
         // mob cuts corner
         kitePathPoint = kitePath[nextPointIndex(kitePath, kitePathPoint)]
-      move(kitePathPoint.x, kitePathPoint.y)
+      if (!kitePathPoint) console.log('[kite] error: missing kitePathPoint')
+      else move(kitePathPoint.x, kitePathPoint.y)
     } else return moveToward(mob, -rangeChunk)
   }
 
@@ -597,8 +598,7 @@
   const bagSlots = (arg, bag) =>
     bag.map((o, slot) => (itemFilter(arg)(o) ? slot : null)).filter(isNotNull)
   const bankPack = x => (character.bank || {})[x] ?? []
-  const bankPackKeys = Object.keys(bank_packs).filter(x => bank_packs[x][0] === 'bank')
-  const getPackWithSpace = () => bankPackKeys.find(openSlotInBankPack)
+  const getPackWithSpace = () => bankPackKeys.find(key => openSlotInBankPack(key) > -1)
   const isNotNull = x => x !== null
   const isNull = x => x === null
   const isStackableType = type => type && G.items[type]?.s

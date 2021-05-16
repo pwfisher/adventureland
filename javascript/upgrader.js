@@ -61,6 +61,7 @@
 
   const autoSellTypes = [
     'bandages',
+    'basher',
     'bwing',
     'beewings',
     'cclaw',

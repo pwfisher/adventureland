@@ -14,7 +14,7 @@
   //
   let autoHostile = false
   let autoPriority = true
-  let priorityMobTypes = ['franky', 'froggie', 'goldenbat']
+  let priorityMobTypes = ['froggie', 'goldenbat']
 
   const autoAttack = true
   const autoDefend = true
@@ -151,7 +151,7 @@
     if (
       can_attack(mobToAttack) &&
       (autoMelee ||
-        ['priority', 'hostile', 'leader', 'lock', 'aggro', 'squishy'].includes(whichMob) ||
+        ['hostile', 'leader', 'lock', 'aggro', 'squishy'].includes(whichMob) ||
         radarRange(mobToAttack) > safeRangeFor(mobToAttack))
     ) {
       attack(mobToAttack)
@@ -195,7 +195,7 @@
     if (map !== character.map) {
       const door = nearestDoor(map)
       if (door) {
-        console.log({ door })
+        // console.log('[followOrStop] nearestDoor', { door })
         const [x, y] = G.maps[map].spawns[door[5]]
         smartMove({ map, x, y })
         moveDirection = 'map'
