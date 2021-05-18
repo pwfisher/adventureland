@@ -149,6 +149,15 @@
   //
   setInterval(tick, tickDelay)
   function tick() {
+    if (character.rip) {
+      resetState()
+      if (autoRespawn) respawn()
+      return
+    }
+    if (smart.moving && moveDirection !== 'escape') resetState()
+
+    // ----
+
     const { character: characterLast } = get('leader-state') ?? {}
     hasMoved =
       character.real_x !== characterLast?.real_x || character.real_y !== characterLast?.real_y
@@ -156,14 +165,7 @@
 
     if (characterLast.id !== character.id) return game_log(`Extra leader: ${character.id}`)
 
-    if (rip) {
-      resetState()
-      if (autoRespawn) respawn()
-      return
-    }
-    if (smart.moving) resetState()
-
-    if (smart.moving && moveDirection !== 'escape') resetState()
+    // ----
 
     if (autoElixir) useElixir()
     if (autoLoot) loot()
@@ -561,7 +563,11 @@
     const { map, real_x, real_y } = character
     if (!map) return game_log('[comeToMe] error: no map')
     const snippet = `smart_move({ map: '${map}', x: ${real_x}, y: ${real_y}})`
-    parent.character_code_eval(name, snippet)
+    try {
+      parent.character_code_eval(name, snippet)
+    } catch (e) {
+      console.error(e)
+    }
   }
 
   function changeServer() {
