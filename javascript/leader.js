@@ -41,6 +41,7 @@
   const autoRest = true // && TEMPORARILY_FALSE
   const autoSquish = true
   const autoStalk = !manualMode
+  const bagSize = 42
   const bankPackKeys = ['items0', 'items1']
   const characterKeys = [
     'Banger',
@@ -121,22 +122,6 @@
     setTimeout(changeServer, autoRealmMinutes * 60 * 1000)
     setTimeout(() => game_log('Realm hop in 60 seconds'), (autoRealmMinutes - 1) * 60 * 1000)
   }
-  if (autoBank) {
-    const bankLoop = async () => {
-      if (
-        character.gold > autoBankAtGold ||
-        character.items.slice(0, 28).filter(x => x === null).length === 0
-      ) {
-        try {
-          await useBank()
-        } catch (e) {
-          console.error(e)
-        }
-      }
-      setTimeout(bankLoop, tickDelay)
-    }
-    bankLoop() // no await
-  }
 
   ;({ character: previousLeader } = get('leader-state') ?? {})
   if (previousLeader.id !== character.id) {
@@ -147,8 +132,17 @@
   //
   // TICK
   //
-  setInterval(tick, tickDelay)
-  function tick() {
+  async function tickLoop() {
+    try {
+      await tick()
+    } catch (e) {
+      console.error(e)
+    }
+    setTimeout(tickLoop, tickDelay)
+  }
+  tickLoop()
+
+  async function tick() {
     if (character.rip) {
       resetState()
       if (autoRespawn) respawn()
@@ -167,6 +161,14 @@
 
     // ----
 
+    if (autoBank) {
+      if (
+        character.gold > autoBankAtGold ||
+        character.items.slice(0, 28).filter(x => x === null).length === 0
+      ) {
+        await useBank()
+      }
+    }
     if (autoElixir) useElixir()
     if (autoLoot) loot()
     if (autoParty) partyUp()
@@ -584,8 +586,7 @@
         if (character.map !== 'bank') return reject()
         bank_deposit(123456789)
         console.log('bankStoreAll')
-        bankStoreAll()
-        resolve()
+        bankStoreAll(resolve)
       })
     })
   }
@@ -619,8 +620,10 @@
     let stacked = false
     if (isStackableType(item.name)) {
       console.log('isStackableType', { item })
-      bankPackKeys.some(packKey => {
-        if (!character.bank[packKey]) return
+      let packKey
+      for (let i = 0; i < bankPackKeys.length; i++) {
+        packKey = bankPackKeys[i]
+        if (stacked || !character.bank[packKey]) continue
         const packSlot = bagSlot(item, bankPack(packKey))
         console.log({ packKey, packSlot })
         if (packSlot > -1 && can_stack(item, bankPack(packKey)[packSlot])) {
@@ -628,7 +631,7 @@
           let openPackSlot = openSlotInBankPack(packKey)
           console.log(`openSlotInBankPack('${packKey}')`, openPackSlot)
           if (openPackSlot > -1) {
-            bank_store(slot, packKey, openPackSlot)
+            await bankStore(slot, packKey, openPackSlot)
             parent.socket.emit('bank', {
               operation: 'move',
               pack: packKey,
@@ -636,28 +639,21 @@
               b: packSlot,
             })
             stacked = true
-            return true
           } // else
           const openSlot = openSlots(character.items)[0]
           if (openSlot > -1) {
             console.log(`can’t stack in full pack, but can swap to open slot`)
             const swapSlot = (packSlot + 1) % bagSize
-            bank_retrieve(packKey, swapSlot, openSlot)
-            bank_store(slot, packKey, swapSlot)
-            parent.socket.emit('bank', {
-              operation: 'move',
-              pack: packKey,
-              a: swapSlot,
-              b: packSlot,
-            })
-            bank_store(openSlot, packKey, swapSlot)
+            await bankRetrieve(packKey, swapSlot, openSlot)
+            await bankStore(slot, packKey, swapSlot)
+            await bankMove(packKey, swapSlot, packSlot)
+            await bankStore(openSlot, packKey, swapSlot)
             stacked = true
-            return true
           } else {
             game_log('stack failed: need open slot in bank or inventory')
           }
         }
-      })
+      }
     }
     if (!stacked) {
       const packKey = getPackWithSpace()
@@ -666,13 +662,33 @@
     }
   }
 
-  async function bankStoreAll() {
+  async function bankStoreAll(resolve) {
     for (let i = 0; i < 28; i++) await bankStoreItem(character.items[i], i)
+    if (resolve) resolve()
   }
 
-  function bankStore(slot, packKey) {
+  function bankStore(fromInventorySlot, toPackKey, toPackSlot) {
     return new Promise(resolve => {
-      bank_store(slot, packKey)
+      bank_store(fromInventorySlot, toPackKey, toPackSlot)
+      setTimeout(resolve, tickDelay)
+    })
+  }
+
+  function bankRetrieve(fromPackKey, fromPackSlot, toInventorySlot) {
+    return new Promise(resolve => {
+      bank_store(fromPackKey, fromPackSlot, toInventorySlot)
+      setTimeout(resolve, tickDelay)
+    })
+  }
+
+  function bankMove(fromPackKey, fromPackSlot, toPackSlot) {
+    return new Promise(resolve => {
+      parent.socket.emit('bank', {
+        operation: 'move',
+        pack: fromPackKey,
+        a: fromPackSlot,
+        b: toPackSlot,
+      })
       setTimeout(resolve, tickDelay)
     })
   }
