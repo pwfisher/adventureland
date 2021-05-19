@@ -22,7 +22,7 @@
 
   const autoAttack = true // && TEMPORARILY_FALSE
   const autoAvoidWillAggro = !isMeleeType && !manualMode // && TEMPORARILY_FALSE
-  const autoBank = true // && TEMPORARILY_FALSE
+  const autoBank = !manualMode // && TEMPORARILY_FALSE
   const autoBankAtGold = 100 * 1000
   const autoDefend = true
   const autoElixir = true
@@ -600,7 +600,7 @@
     parent.character_code_eval(name, snippet)
   }
 
-  const bagSlot = (item, bag) => bagSlots(item, bag)?.[0]
+  const bagSlot = (item, bag) => bagSlots(item, bag)[0]
   const bagSlots = (arg, bag) =>
     bag.map((o, slot) => (itemFilter(arg)(o) ? slot : null)).filter(isNotNull)
   const bankPack = x => (character.bank || {})[x] ?? []
@@ -613,15 +613,17 @@
   const openSlotInBankPack = key => bankPack(key).findIndex(isNull)
   const openSlots = bag => bag.map((o, slot) => (o ? null : slot)).filter(isNotNull)
 
-  const bankStoreItem = (item, slot) => {
+  const bankStoreItem = async (item, slot) => {
     if (!item) return
     console.log('bankStoreItem', { item, slot })
     let stacked = false
     if (isStackableType(item.name)) {
+      console.log('isStackableType', { item })
       bankPackKeys.some(packKey => {
         if (!character.bank[packKey]) return
         const packSlot = bagSlot(item, bankPack(packKey))
-        if (packSlot && can_stack(item, bankPack(packKey)[packSlot])) {
+        console.log({ packKey, packSlot })
+        if (packSlot > -1 && can_stack(item, bankPack(packKey)[packSlot])) {
           console.log(`stacking ${item.name}`)
           let openPackSlot = openSlotInBankPack(packKey)
           console.log(`openSlotInBankPack('${packKey}')`, openPackSlot)
@@ -660,10 +662,20 @@
     if (!stacked) {
       const packKey = getPackWithSpace()
       console.log('bankStoreItem !stacked', { packKey, slot })
-      if (packKey) bank_store(slot, packKey)
+      if (packKey) await bankStore(slot, packKey)
     }
   }
-  const bankStoreAll = () => character.items.slice(0, 28).forEach(bankStoreItem)
+
+  async function bankStoreAll() {
+    for (let i = 0; i < 28; i++) await bankStoreItem(character.items[i], i)
+  }
+
+  function bankStore(slot, packKey) {
+    return new Promise(resolve => {
+      bank_store(slot, packKey)
+      setTimeout(resolve, tickDelay)
+    })
+  }
 
   //
   // HOOKS
