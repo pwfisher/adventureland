@@ -5,11 +5,11 @@
    * @author Patrick Fisher <patrick@pwfisher.com>
    * @see https://github.com/kaansoral/adventureland
    */
-  const isMeleeType = ['warrior', 'rogue', 'paladin'].includes(character.ctype)
   const TEMPORARILY_FALSE = false
   const TEMPORARILY_TRUE = true
   console.log({ TEMPORARILY_FALSE, TEMPORARILY_TRUE })
   console.clear()
+  const isMeleeType = ['warrior', 'rogue', 'paladin'].includes(character.ctype) // && TEMPORARILY_FALSE
 
   //
   // CONFIG
@@ -51,6 +51,7 @@
     'Hunger',
     'Linger',
     'Longer',
+    'Ringer',
     'Winger',
     'Zinger',
   ]
@@ -64,12 +65,12 @@
     'greenjr',
     'goldenbat',
     'phoenix',
-    'skeletor',
+    // 'skeletor',
     'wabbit',
   ]
   const rangeChunk = 50
   const rangeRadar = Infinity
-  const rangeStalk = [character.range * 0.8, character.range]
+  let rangeStalk = [character.range * 0.8, character.range]
   const tickDelay = 250
   const timeStartup = 4000
   const uiBlank = '--'
@@ -155,7 +156,8 @@
     const { character: characterLast } = get('leader-state') ?? {}
     hasMoved =
       character.real_x !== characterLast?.real_x || character.real_y !== characterLast?.real_y
-    const { ctype, hp, items, max_hp, rip, slots } = character
+    const { ctype, hp, items, max_hp, range, rip, slots } = character
+    rangeStalk = [range * 0.8, range]
 
     if (characterLast.id !== character.id) return game_log(`Extra leader: ${character.id}`)
 

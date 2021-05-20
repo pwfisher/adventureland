@@ -33,7 +33,7 @@ export type Item = {
 pants: { acc: 151969, name: 'wbreeches', level: 7, ach: 'gooped', stat_type: 'int' }
 
 Game_log has shown
-- "AP[gooped]: 123,456/12,345,678" fighting cgoo
+- "AP[gooped]: 320,284/60,000,000" fighting cgoo
 - "AP[firestarter] 1/20,000" after phoenix kill
 AP = achievement points?
 

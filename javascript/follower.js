@@ -33,6 +33,7 @@
     'Hunger',
     'Linger',
     'Longer',
+    'Ringer',
     'Winger',
     'Zinger',
   ]

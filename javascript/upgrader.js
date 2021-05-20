@@ -38,6 +38,7 @@
     harbringer: 3,
     pickaxe: 3,
     rod: 3,
+    t2bow: 7,
     wattire: 8,
     wbreeches: 8,
     wcap: 8,
@@ -53,6 +54,7 @@
     'Hunger',
     'Linger',
     'Longer',
+    'Ringer',
     'Winger',
     'Zinger',
   ]
@@ -70,7 +72,7 @@
     'cshell',
     'coat',
     'coat1',
-    'dagger',
+    // 'dagger',
     'dstones',
     'frogt',
     'gloves',
@@ -97,8 +99,8 @@
     'spear',
     'spores',
     'sstinger',
-    'sword',
-    'throwingstars',
+    // 'sword',
+    // 'throwingstars',
     // 'whiteegg',
   ].filter(x => x !== autoUpgradeBuyType)
 
