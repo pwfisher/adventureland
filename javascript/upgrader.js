@@ -19,6 +19,7 @@
   const autoLuck = true
   const autoParty = false
   const autoPotion = true
+  const autoRain = true
   const autoRespawn = true
   const autoSell = true
   const autoSellLevelMax = 3
@@ -60,6 +61,7 @@
   ]
   const partyKeys = []
   const rangeRadar = Infinity
+  const rangeSendGold = 400
   const tickDelay = 250
 
   const autoSellTypes = [
@@ -79,6 +81,7 @@
     'gloves1',
     'gslime',
     'harmor',
+    'hbow',
     'hboots',
     'helmet',
     'helmet1',
@@ -99,8 +102,8 @@
     'spear',
     'spores',
     'sstinger',
-    // 'sword',
-    // 'throwingstars',
+    'sword',
+    'throwingstars',
     // 'whiteegg',
   ].filter(x => x !== autoUpgradeBuyType)
 
@@ -135,6 +138,7 @@
     //
     if (autoParty) partyUp()
     if (autoPotion) use_hp_or_mp()
+    if (autoRain) makeItRain()
     if (autoStand) {
       if (is_moving(character) && character.stand) close_stand()
       else if (!is_moving(character) && !character.stand) open_stand()
@@ -192,8 +196,32 @@
       .some(([_, mob]) => {
         use_skill('mluck', mob)
         game_log(`mluck mob: ${mob.id}`)
+        sendItem(mob.id, 'whiteegg', 1)
         return true
       })
+  }
+
+  function sendItem(characterKey, itemKey, quantity) {
+    const slot = character.items.findIndex(o => o?.name === itemKey)
+    parent.socket.emit('send', { name: characterKey, num: slot, q: quantity })
+  }
+
+  function makeItRain() {
+    if (character.gold < 10 * 1000 * 1000) return
+    const targets = Object.entries(parent.entities)
+      .filter(([_, mob]) => mob.player && !mob.npc)
+      .filter(([_, mob]) => distance(character, mob) <= rangeSendGold)
+      .map(([_, mob]) => mob.id)
+    parent.socket.emit('send', { name: shuffle(targets)[0], gold: 1 })
+  }
+
+  // @see https://stackoverflow.com/a/12646864/161182
+  function shuffle(array) {
+    for (let i = array.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1))
+      ;[array[i], array[j]] = [array[j], array[i]]
+    }
+    return array
   }
 
   function useMining() {

@@ -20,6 +20,7 @@ export type Item = {
         nums: number[]
       }
     | 'festive'
+    | 'firehazard' // display: "Hazardous"
     | 'glitched'
     | 'shiny'
     | 'superfast'

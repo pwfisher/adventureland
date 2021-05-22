@@ -39,6 +39,7 @@
   const autoRealmMinutes = 5 // * 60 * 24
   const autoRespawn = true
   const autoRest = true // && TEMPORARILY_FALSE
+  const autoRestAt = 0.75
   const autoSquish = true
   const autoStalk = !manualMode
   const bagSize = 42
@@ -255,14 +256,14 @@
       juicyMob &&
       autoAttack &&
       radarRange(juicyMob) < character.range + character.speed &&
-      (!autoRest || character.hp > character.max_hp * 0.9) &&
+      (!autoRest || character.hp > character.max_hp * autoRestAt) &&
       isSafePrey(juicyMob)
     )
       whichMob = 'juicy'
     else if (
       preyMob &&
       autoAttack &&
-      (!autoRest || character.hp > character.max_hp * 0.9) &&
+      (!autoRest || character.hp > character.max_hp * autoRestAt) &&
       isSafePrey(preyMob)
     )
       whichMob = 'prey'

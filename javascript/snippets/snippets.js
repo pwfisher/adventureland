@@ -103,4 +103,9 @@ console.info(result)
 
 send_cm('Finger', 'changeServer')
 
+// Skill ranges
+Object.entries(G.skills).reduce((acc, [k, v]) => ({ ...acc, [k]: v.range }), {})
+
+game_log('Distance: ' + distance(character, parent.entities.Dinger))
+
 // end snippets.js
