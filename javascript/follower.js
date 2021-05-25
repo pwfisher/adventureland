@@ -13,8 +13,6 @@
   // CONFIG
   //
   let autoHostile = false
-  let autoPriority = true
-  let priorityMobTypes = ['froggie', 'goldenbat']
 
   const autoAttack = true
   const autoDefend = true
@@ -74,8 +72,7 @@
   setInterval(tick, tickDelay)
   function tick() {
     ;({ character: leader, smart: leaderSmart } = get('leader-state') ?? {})
-    ;({ autoHostile, autoPriority, priorityMobTypes } = followerConfig =
-      get('follower-config') || followerConfig)
+    ;({ autoHostile } = followerConfig = get('follower-config') || followerConfig)
     const { hp, items, max_hp, rip, slots } = character
 
     if (rip) {
@@ -116,7 +113,6 @@
     const hostileMob = getNearestHostile()
     const lockMob = get_targeted_monster()
     const partyMob = getNearestMonster({ target: leader?.id }) // should include any party member targeted
-    const priorityMob = getPriorityMob()
     const squishyMob = getNearestMonster({
       min_xp: 1,
       max_hp: character.attack * 0.95,
@@ -129,7 +125,6 @@
       kitingMob,
       lockMob,
       partyMob,
-      priorityMob,
       squishyMob,
       willAggroMob,
     }
@@ -141,7 +136,6 @@
     // ATTACK
     //
     if (hostileMob && autoHostile) whichMob = 'hostile'
-    else if (priorityMob && autoPriority) whichMob = 'priority'
     else if (lockMob?.visible && iAmTargetOf(lockMob) && radarRange(lockMob) < character.range)
       whichMob = 'lock'
     else if (aggroMob && autoDefend) whichMob = 'aggro'
@@ -152,7 +146,7 @@
     if (
       can_attack(mobToAttack) &&
       (autoMelee ||
-        ['hostile', 'leader', 'lock', 'aggro', 'squishy'].includes(whichMob) ||
+        ['hostile', 'lock', 'aggro', 'squishy'].includes(whichMob) ||
         radarRange(mobToAttack) > safeRangeFor(mobToAttack))
     ) {
       attack(mobToAttack)
@@ -252,11 +246,6 @@
       if (props.path_check && !can_move_to(mob)) return
       return true
     })
-
-  const getPriorityMob = () =>
-    priorityMobTypes
-      .map(mtype => getRadarPings({ mtype }).reduce(minRange, { range: Infinity }))
-      .reduce(minRange, { range: Infinity }).mob
 
   const iAmTargetOf = mob => mob?.target === character.id
 

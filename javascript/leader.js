@@ -66,7 +66,7 @@
     'greenjr',
     'goldenbat',
     'phoenix',
-    // 'skeletor',
+     'skeletor',
     'wabbit',
   ]
   const rangeChunk = 50
@@ -85,8 +85,6 @@
   set('follower-config', {
     autoAvoidWillAggro,
     autoHostile,
-    autoPriority,
-    priorityMobTypes,
   })
 
   smart.use_town = false

@@ -212,7 +212,7 @@
       .filter(([_, mob]) => mob.player && !mob.npc)
       .filter(([_, mob]) => distance(character, mob) <= rangeSendGold)
       .map(([_, mob]) => mob.id)
-    parent.socket.emit('send', { name: shuffle(targets)[0], gold: 1 })
+    if (targets.length) parent.socket.emit('send', { name: shuffle(targets)[0], gold: 1 })
   }
 
   // @see https://stackoverflow.com/a/12646864/161182
