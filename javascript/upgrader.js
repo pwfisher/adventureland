@@ -12,14 +12,18 @@
   //
   // CONFIG
   //
+  const autoBuyDelay = 3000
   const autoCompound = true
   const autoCompoundLevelMax = 3
   const autoExchange = true
   const autoLoot = false
   const autoLuck = true
   const autoParty = false
+  const autoPonty = true
   const autoPotion = true
   const autoRain = true
+  const autoRealm = true
+  const autoRealmMinutes = 2
   const autoRespawn = true
   const autoSell = true
   const autoSellLevelMax = 3
@@ -60,9 +64,38 @@
     'Zinger',
   ]
   const partyKeys = []
+  const rangeBuy = 400
   const rangeRadar = Infinity
   const rangeSendGold = 400
   const tickDelay = 250
+
+  const autoBuyLog = {} // Record<rid, true>
+  const autoBuyTypes = {
+    angelwings: true,
+    armorbox: true,
+    ascale: true,
+    bcape: true,
+    cape: true,
+    crossbow: true,
+    dexamulet: true,
+    dexring: true,
+    ecape: true,
+    eslippers: true,
+    harbringer: true,
+    hpbelt: true,
+    intamulet: true,
+    intring: true,
+    pickaxe: true,
+    rod: true,
+    stramulet: true,
+    strring: true,
+    t2bow: true,
+    wattire: true,
+    wbreeches: true,
+    wcap: true,
+    wgloves: true,
+    wshoes: true,
+  }
 
   const autoSellTypes = [
     'bandages',
@@ -115,6 +148,10 @@
   //
   // INIT
   //
+  if (autoRealm) {
+    setTimeout(changeServer, autoRealmMinutes * 60 * 1000)
+    setTimeout(() => game_log('Realm hop in 60 seconds'), (autoRealmMinutes - 1) * 60 * 1000)
+  }
   if (autoTown) openStandInTown()
   set_message(`Upgrader`)
 
@@ -148,6 +185,7 @@
       if (autoCompound) compoundAny()
       if (autoExchange) exchangeSlot0()
       if (autoLuck) useMluck()
+      if (autoPonty) buyFromPonty()
       if (autoSell)
         character.items.forEach((item, slot) => {
           if (
@@ -181,12 +219,8 @@
   //
   // Functions
   //
-  let usedMluckAt = Date.now()
-
   function useMluck() {
     if (isOnCooldown('mluck') || character.mp < 10) return
-    const now = Date.now()
-    if (now - usedMluckAt < 1000) return
     if (character.s?.mluck?.f !== character.name) return use_skill('mluck', character)
     return Object.entries(parent.entities)
       .filter(([_, mob]) => mob.player && !mob.npc)
@@ -319,6 +353,36 @@
     return parent.next_skill[cooldownKey] && new Date() < parent.next_skill[cooldownKey]
   }
 
+  function distanceToNPC(npcKey) {
+    const npc = parent.npcs.find(x => x.id === npcKey)
+    if (!npc) return Infinity
+    const [x, y] = npc.position
+    return distance(character, { x, y })
+  }
+
+  let usedPontyAt = 0
+
+  function buyFromPonty() {
+    if (distanceToNPC('secondhands') > rangeBuy) return
+    const now = Date.now()
+    if (now - usedPontyAt < autoBuyDelay) return
+    usedPontyAt = now
+    parent.socket.once('secondhands', items => {
+      items.forEach(({ name, rid }) => {
+        if (!autoBuyTypes[name] || autoBuyLog[rid]) return
+        parent.socket.emit('sbuy', { rid })
+        autoBuyLog[rid] = true
+      })
+    })
+    parent.socket.emit('secondhands')
+  }
+
+  function changeServer() {
+    const servers = ['US-I', 'US-II', 'US-III', 'US-PVP', 'EU-I', 'EU-II', 'EU-PVP', 'ASIA-I']
+    const [region, identifier] = servers[Math.floor(Math.random() * servers.length)].split('-')
+    change_server(region, identifier)
+  }
+
   //
   // Hooks
   //
@@ -330,6 +394,7 @@
   // send_cm('Dinger', 'openStandInTown')
   on_cm = (name, data) => {
     if (!characterKeys.includes(name)) return
+    if (data === 'changeServer') return changeServer()
     if (data === 'openStandInTown') return openStandInTown()
     if (data === 'useMining') return useMining()
   }

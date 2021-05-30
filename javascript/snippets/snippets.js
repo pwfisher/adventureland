@@ -108,4 +108,12 @@ Object.entries(G.skills).reduce((acc, [k, v]) => ({ ...acc, [k]: v.range }), {})
 
 game_log('Distance: ' + distance(character, parent.entities.Dinger))
 
+function distanceToNPC(npcKey) {
+  const npc = parent.npcs.find(x => x.id === npcKey)
+  if (!npc) return Infinity
+  const [x, y] = npc.position
+  return distance(character, { x, y })
+}
+game_log('Distance: ' + distanceToNPC('scrolls')) // 399.6 worked, 401.9 was too far. so `const rangeBuy = 400`
+
 // end snippets.js
