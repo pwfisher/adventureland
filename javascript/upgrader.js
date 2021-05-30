@@ -12,7 +12,7 @@
   //
   // CONFIG
   //
-  const autoBuyDelay = 3000
+  const autoBuyDelay = 10 * 1000
   const autoCompound = true
   const autoCompoundLevelMax = 3
   const autoExchange = true
@@ -22,7 +22,7 @@
   const autoPonty = true
   const autoPotion = true
   const autoRain = true
-  const autoRealm = true
+  const autoRealm = true && TEMPORARILY_FALSE
   const autoRealmMinutes = 2
   const autoRespawn = true
   const autoSell = true
@@ -49,6 +49,8 @@
     wcap: 8,
     wgloves: 8,
     wshoes: 8,
+    xmashat: 8,
+    xmace: 6,
   }
   const bankPackKeys = ['items0', 'items1']
   const characterKeys = [
@@ -69,7 +71,6 @@
   const rangeSendGold = 400
   const tickDelay = 250
 
-  const autoBuyLog = {} // Record<rid, true>
   const autoBuyTypes = {
     angelwings: true,
     armorbox: true,
@@ -80,11 +81,16 @@
     dexamulet: true,
     dexring: true,
     ecape: true,
+    elixirdex1: true,
+    elixirint1: true,
+    elixirstr1: true,
+    elixirvit1: true,
     eslippers: true,
     harbringer: true,
     hpbelt: true,
     intamulet: true,
     intring: true,
+    ornamentstaff: true,
     pickaxe: true,
     rod: true,
     stramulet: true,
@@ -94,7 +100,10 @@
     wbreeches: true,
     wcap: true,
     wgloves: true,
+    whiteegg: true,
     wshoes: true,
+    xmace: true,
+    xmashat: true,
   }
 
   const autoSellTypes = [
@@ -132,6 +141,7 @@
     'shoes',
     'shoes1',
     'slimestaff',
+    'smush',
     'spear',
     'spores',
     'sstinger',
@@ -369,9 +379,8 @@
     usedPontyAt = now
     parent.socket.once('secondhands', items => {
       items.forEach(({ name, rid }) => {
-        if (!autoBuyTypes[name] || autoBuyLog[rid]) return
+        if (!autoBuyTypes[name]) return
         parent.socket.emit('sbuy', { rid })
-        autoBuyLog[rid] = true
       })
     })
     parent.socket.emit('secondhands')

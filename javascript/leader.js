@@ -56,6 +56,7 @@
     'Winger',
     'Zinger',
   ]
+  const emitDelay = Math.max(200, character.ping * 3)
   const partyKeys = ['Hunger', 'Finger', 'Zinger'].filter(x => x !== character.id).slice(0, 2)
   const preyAtkMax = 1000
   const preyXpMin = 300
@@ -66,7 +67,7 @@
     'greenjr',
     'goldenbat',
     'phoenix',
-     'skeletor',
+    'skeletor',
     'wabbit',
   ]
   const rangeChunk = 50
@@ -671,14 +672,14 @@
   function bankStore(fromInventorySlot, toPackKey, toPackSlot) {
     return new Promise(resolve => {
       bank_store(fromInventorySlot, toPackKey, toPackSlot)
-      setTimeout(resolve, tickDelay)
+      setTimeout(resolve, emitDelay)
     })
   }
 
   function bankRetrieve(fromPackKey, fromPackSlot, toInventorySlot) {
     return new Promise(resolve => {
       bank_store(fromPackKey, fromPackSlot, toInventorySlot)
-      setTimeout(resolve, tickDelay)
+      setTimeout(resolve, emitDelay)
     })
   }
 
@@ -690,7 +691,7 @@
         a: fromPackSlot,
         b: toPackSlot,
       })
-      setTimeout(resolve, tickDelay)
+      setTimeout(resolve, emitDelay)
     })
   }
 

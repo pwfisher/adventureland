@@ -336,8 +336,8 @@
   //
   on_combined_damage = () =>
     parent.party_list.findIndex(x => x === character.id) % 2
-      ? moveClockwise(mobToAttack, rangeChunk)
-      : moveCounterclockwise(mobToAttack, rangeChunk)
+      ? moveClockwise(mobToAttack, rangeChunk * 0.5)
+      : moveCounterclockwise(mobToAttack, rangeChunk * 0.5)
 
   on_party_invite = key => {
     if (characterKeys.includes(key)) accept_party_invite(key)
