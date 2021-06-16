@@ -106,6 +106,8 @@ send_cm('Finger', 'changeServer')
 // Skill ranges
 Object.entries(G.skills).reduce((acc, [k, v]) => ({ ...acc, [k]: v.range }), {})
 
+// ---
+
 game_log('Distance: ' + distance(character, parent.entities.Dinger))
 
 function distanceToNPC(npcKey) {
@@ -115,5 +117,9 @@ function distanceToNPC(npcKey) {
   return distance(character, { x, y })
 }
 game_log('Distance: ' + distanceToNPC('scrolls')) // 399.6 worked, 401.9 was too far. so `const rangeBuy = 400`
+
+// ---
+
+parent.socket.emit('destroy', { num: 7, q: 9999 })
 
 // end snippets.js

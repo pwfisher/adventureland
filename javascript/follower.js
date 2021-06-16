@@ -13,6 +13,8 @@
   // CONFIG
   //
   let autoHostile = false
+  const autoPriority = true
+  const priorityMobTypes = ['froggie', 'goldenbat']
 
   const autoAttack = true
   const autoDefend = true
@@ -113,6 +115,7 @@
     const hostileMob = getNearestHostile()
     const lockMob = get_targeted_monster()
     const partyMob = getNearestMonster({ target: leader?.id }) // should include any party member targeted
+    const priorityMob = getPriorityMob()
     const squishyMob = getNearestMonster({
       min_xp: 1,
       max_hp: character.attack * 0.95,
@@ -125,6 +128,7 @@
       kitingMob,
       lockMob,
       partyMob,
+      priorityMob,
       squishyMob,
       willAggroMob,
     }
@@ -136,6 +140,7 @@
     // ATTACK
     //
     if (hostileMob && autoHostile) whichMob = 'hostile'
+    else if (priorityMob && autoPriority) whichMob = 'priority'
     else if (lockMob?.visible && iAmTargetOf(lockMob) && radarRange(lockMob) < character.range)
       whichMob = 'lock'
     else if (aggroMob && autoDefend) whichMob = 'aggro'
@@ -146,7 +151,7 @@
     if (
       can_attack(mobToAttack) &&
       (autoMelee ||
-        ['hostile', 'lock', 'aggro', 'squishy'].includes(whichMob) ||
+        ['hostile', 'priority', 'lock', 'aggro', 'squishy'].includes(whichMob) ||
         radarRange(mobToAttack) > safeRangeFor(mobToAttack))
     ) {
       attack(mobToAttack)
@@ -155,7 +160,7 @@
     //
     // MOVEMENT
     //
-    followOrStop()
+    followOrStop({ leader, leaderSmart })
 
     //
     // UPDATE
@@ -165,7 +170,7 @@
     const uiDir = smart.moving ? 'smart' : kitingMob ? 'kite' : moveDirection || uiBlank
     set_message(`${uiRange} ${uiWhich} ${uiDir}`)
     const updatedAt = new Date()
-    set(character.id, { items, slots, updatedAt })
+    setLSKey(character.id, { character, items, slots, smart, updatedAt })
   }
 
   //
@@ -178,9 +183,9 @@
     // return player.hp < player.max_hp
   }
 
-  const followOrStop = () => {
+  const followOrStop = ({ leader, leaderSmart }) => {
     if (!leader?.map || !character?.map) return
-    const map = leaderSmart.moving ? leaderSmart.map : leader.map
+    const map = leaderSmart?.moving ? leaderSmart?.map : leader.map
     if (map === 'bank') return
 
     const { going_x, going_y } = leader
@@ -246,6 +251,11 @@
       if (props.path_check && !can_move_to(mob)) return
       return true
     })
+
+  const getPriorityMob = () =>
+    priorityMobTypes
+      .map(mtype => getRadarPings({ mtype }).reduce(minRange, { range: Infinity }))
+      .reduce(minRange, { range: Infinity }).mob
 
   const iAmTargetOf = mob => mob?.target === character.id
 
@@ -334,6 +344,11 @@
   //
   // HOOKS
   //
+  on_cm = (name, data) => {
+    if (!characterKeys.includes(name)) return
+    if (data === 'comeToMe') followOrStop({ leader: get(name).character, leaderSmart: get(name).smart  })
+  }
+
   on_combined_damage = () =>
     parent.party_list.findIndex(x => x === character.id) % 2
       ? moveClockwise(mobToAttack, rangeChunk * 0.5)
@@ -341,6 +356,24 @@
 
   on_party_invite = key => {
     if (characterKeys.includes(key)) accept_party_invite(key)
+  }
+
+  // replace game’s `set` to strip circular references
+  function setLSKey(key, value) {
+    try {
+      window.localStorage.setItem(
+        `cstore_${key}`,
+        JSON.stringify(value, (k, v) => {
+          // data-specific. nullify _foo, _bar, children, parent, scope.
+          if (k[0] === '_') return null
+          return ['children', 'parent', 'scope'].includes(k) ? null : v
+        })
+      )
+      return true
+    } catch (e) {
+      game_log(`[setItemInLS] key: ${key}, error: ${e}`)
+      return false
+    }
   }
 })()
 // end follower.js

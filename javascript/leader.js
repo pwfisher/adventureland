@@ -14,8 +14,8 @@
   //
   // CONFIG
   //
-  const autoMap = 'arena'
-  const autoMob = ''
+  const autoMap = ''
+  const autoMob = 'boar'
   const manualMode = false // || TEMPORARILY_TRUE
 
   // ------
@@ -35,7 +35,7 @@
   const autoParty = true // && TEMPORARILY_FALSE
   const autoPotion = true
   const autoPriority = true
-  const autoRealm = !manualMode // && TEMPORARILY_FALSE
+  const autoRealm = !manualMode && !autoMob // && TEMPORARILY_FALSE
   const autoRealmMinutes = 5 // * 60 * 24
   const autoRespawn = true
   const autoRest = true // && TEMPORARILY_FALSE
@@ -43,7 +43,7 @@
   const autoSquish = true
   const autoStalk = !manualMode
   const bagSize = 42
-  const bankPackKeys = ['items0', 'items1']
+  const bankPackKeys = ['items0', 'items1', 'items2', 'items3']
   const characterKeys = [
     'Banger',
     'Binger',
@@ -156,7 +156,7 @@
     const { character: characterLast } = get('leader-state') ?? {}
     hasMoved =
       character.real_x !== characterLast?.real_x || character.real_y !== characterLast?.real_y
-    const { ctype, hp, items, max_hp, range, rip, slots } = character
+    const { ctype, hp, items, max_hp, range, slots } = character
     rangeStalk = [range * 0.8, range]
 
     if (characterLast.id !== character.id) return game_log(`Extra leader: ${character.id}`)
@@ -369,7 +369,7 @@
 
     setLeaderState()
     const updatedAt = new Date()
-    set(character.id, { items, slots, updatedAt })
+    setLSKey(character.id, { character, items, slots, smart, updatedAt })
   }
 
   //
@@ -598,7 +598,7 @@
     if (name === id) return
     const snippet = `
       parent.socket.emit('send', { name: '${id}', gold: 1234567890 })
-      for (let i = 0; i < 35; i++) parent.socket.emit('send', { name: '${id}', num: i, q: 9999 })
+      for (let i = 0; i < 28; i++) parent.socket.emit('send', { name: '${id}', num: i, q: 9999 })
     `
     parent.character_code_eval(name, snippet)
   }

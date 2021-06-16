@@ -19,10 +19,10 @@
   const autoLoot = false
   const autoLuck = true
   const autoParty = false
-  const autoPonty = true
+  const autoPonty = true // && TEMPORARILY_FALSE
   const autoPotion = true
   const autoRain = true
-  const autoRealm = true && TEMPORARILY_FALSE
+  const autoRealm = true // && TEMPORARILY_FALSE
   const autoRealmMinutes = 2
   const autoRespawn = true
   const autoSell = true
@@ -35,20 +35,23 @@
   const autoUpgradeMaxLevel = 6 // 7
   const autoUpgradeLevels = {
     bataxe: 5,
-    cape: 0,
+    cape: 8,
     coat: 8,
     crossbow: 5,
     ecape: 6,
     eslippers: 7,
+    fireblade: 7,
+    firestaff: 7,
     harbringer: 3,
     pickaxe: 3,
+    quiver: 8,
     rod: 3,
     t2bow: 7,
-    wattire: 8,
-    wbreeches: 8,
-    wcap: 8,
-    wgloves: 8,
-    wshoes: 8,
+    wattire: 9,
+    wbreeches: 9,
+    wcap: 9,
+    wgloves: 9,
+    wshoes: 9,
     xmashat: 8,
     xmace: 6,
   }
@@ -79,6 +82,7 @@
     cape: true,
     crossbow: true,
     dexamulet: true,
+    dexearring: true,
     dexring: true,
     ecape: true,
     elixirdex1: true,
@@ -87,15 +91,24 @@
     elixirvit1: true,
     eslippers: true,
     harbringer: true,
-    hpbelt: true,
     intamulet: true,
+    intearring: true,
     intring: true,
+    mittens: true,
     ornamentstaff: true,
+    oozingterror: true,
     pickaxe: true,
+    quiver: true,
     rod: true,
+    shield: true,
+    sshield: true,
     stramulet: true,
+    strearring: true,
     strring: true,
+    sword: true,
     t2bow: true,
+    vitearring: true,
+    vitring: true,
     wattire: true,
     wbreeches: true,
     wcap: true,
@@ -104,6 +117,8 @@
     wshoes: true,
     xmace: true,
     xmashat: true,
+    xmaspants: true,
+    xmasshoes: true,
   }
 
   const autoSellTypes = [
@@ -116,7 +131,7 @@
     'cshell',
     'coat',
     'coat1',
-    // 'dagger',
+    'dagger',
     'dstones',
     'frogt',
     'gloves',
@@ -129,7 +144,9 @@
     'helmet1',
     'hgloves',
     'hhelmet',
+    'hpamulet',
     'hpants',
+    'hpbelt',
     'ijx',
     'lspores',
     'maceofthedead',
@@ -137,6 +154,7 @@
     'pants1',
     'pmace',
     'rattail',
+    'ringsj',
     'shadowstone',
     'shoes',
     'shoes1',
@@ -145,7 +163,7 @@
     'spear',
     'spores',
     'sstinger',
-    'sword',
+    //sword',
     'throwingstars',
     // 'whiteegg',
   ].filter(x => x !== autoUpgradeBuyType)
@@ -223,7 +241,7 @@
     // UPDATE
     //
     const updatedAt = new Date()
-    set(character.id, { items, slots, updatedAt })
+    setLSKey(character.id, { character, items, slots, smart, updatedAt })
   }
 
   //
@@ -406,6 +424,24 @@
     if (data === 'changeServer') return changeServer()
     if (data === 'openStandInTown') return openStandInTown()
     if (data === 'useMining') return useMining()
+  }
+
+  // replace game’s `set` to strip circular references
+  function setLSKey(key, value) {
+    try {
+      window.localStorage.setItem(
+        `cstore_${key}`,
+        JSON.stringify(value, (k, v) => {
+          // data-specific. nullify _foo, _bar, children, parent, scope.
+          if (k[0] === '_') return null
+          return ['children', 'parent', 'scope'].includes(k) ? null : v
+        })
+      )
+      return true
+    } catch (e) {
+      game_log(`[setItemInLS] key: ${key}, error: ${e}`)
+      return false
+    }
   }
 })()
 // end upgrader.js
