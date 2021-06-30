@@ -1,4 +1,4 @@
-;(function () {
+; (function () {
   /**
    * Upgrader
    *
@@ -12,7 +12,7 @@
   //
   // CONFIG
   //
-  const autoBuyDelay = 10 * 1000
+  const autoBuyDelay = 30 * 1000
   const autoCompound = true
   const autoCompoundLevelMax = 3
   const autoExchange = true
@@ -23,7 +23,7 @@
   const autoPotion = true
   const autoRain = true
   const autoRealm = true // && TEMPORARILY_FALSE
-  const autoRealmMinutes = 2
+  const autoRealmMinutes = 5
   const autoRespawn = true
   const autoSell = true
   const autoSellLevelMax = 3
@@ -51,6 +51,7 @@
     wbreeches: 9,
     wcap: 9,
     wgloves: 9,
+    wingedboots: 7,
     wshoes: 9,
     xmashat: 8,
     xmace: 6,
@@ -98,7 +99,7 @@
     ornamentstaff: true,
     oozingterror: true,
     pickaxe: true,
-    quiver: true,
+    //quiver: true,
     rod: true,
     shield: true,
     sshield: true,
@@ -114,6 +115,7 @@
     wcap: true,
     wgloves: true,
     whiteegg: true,
+    wingedboots: true,
     wshoes: true,
     xmace: true,
     xmashat: true,
@@ -171,7 +173,7 @@
   //
   // STATE
   //
-  const resetState = () => {}
+  const resetState = () => { }
 
   //
   // INIT
@@ -281,7 +283,7 @@
   function shuffle(array) {
     for (let i = array.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1))
-      ;[array[i], array[j]] = [array[j], array[i]]
+        ;[array[i], array[j]] = [array[j], array[i]]
     }
     return array
   }
@@ -346,7 +348,7 @@
     isUpgradeableType(item?.name) &&
     item_grade(item) <= autoUpgradeMaxGrade &&
     item.level <
-      (autoUpgradeLevels[item.name] > -1 ? autoUpgradeLevels[item.name] : autoUpgradeMaxLevel)
+    (autoUpgradeLevels[item.name] > -1 ? autoUpgradeLevels[item.name] : autoUpgradeMaxLevel)
   const autoUpgradeableSlot = () => character.items.findIndex(o => isAutoUpgradeableItem(o))
 
   // A "bag" is character.items or, e.g., character.bank['items0']

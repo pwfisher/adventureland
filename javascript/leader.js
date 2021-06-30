@@ -1,4 +1,4 @@
-;(async function () {
+; (async function () {
   /**
    * Leader
    *
@@ -14,8 +14,8 @@
   //
   // CONFIG
   //
-  const autoMap = ''
-  const autoMob = 'boar'
+  const autoMap = 'mansion'
+  const autoMob = 'rat'
   const manualMode = false // || TEMPORARILY_TRUE
 
   // ------
@@ -124,7 +124,7 @@
     setTimeout(() => game_log('Realm hop in 60 seconds'), (autoRealmMinutes - 1) * 60 * 1000)
   }
 
-  ;({ character: previousLeader } = get('leader-state') ?? {})
+  ; ({ character: previousLeader } = get('leader-state') ?? {})
   if (previousLeader.id !== character.id) {
     game_log(`Leader was ${previousLeader.id}, now ${character.id}`)
     setLeaderState()
@@ -359,10 +359,10 @@
     const uiDir = smart.moving
       ? 'smart'
       : kitePathPoint
-      ? 'path'
-      : kitingMob
-      ? 'kite'
-      : moveDirection || uiBlank
+        ? 'path'
+        : kitingMob
+          ? 'kite'
+          : moveDirection || uiBlank
     set_message(`${uiRange} ${uiWhich} ${uiDir}`)
 
     if (character.xp < characterLast.xp) game_log(`Lost ${characterLast.xp - character.xp} xp`)
