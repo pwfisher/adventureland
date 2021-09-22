@@ -41,17 +41,20 @@
     ecape: 6,
     eslippers: 7,
     fireblade: 7,
-    firestaff: 7,
+    firestaff: 6, // optimal: min scroll to lvl 6, then upsize + primling
     harbringer: 3,
     pickaxe: 3,
     quiver: 8,
     rod: 3,
+    shield: 7,
+    staff: 0,
+    sword: 8,
     t2bow: 7,
     wattire: 9,
     wbreeches: 9,
     wcap: 9,
     wgloves: 9,
-    wingedboots: 7,
+    wingedboots: 2, // then manual scroll1
     wshoes: 9,
     xmashat: 8,
     xmace: 6,
@@ -81,8 +84,10 @@
     ascale: true,
     bcape: true,
     cape: true,
+    cring: true,
     crossbow: true,
     dexamulet: true,
+    dexbelt: true,
     dexearring: true,
     dexring: true,
     ecape: true,
@@ -93,24 +98,34 @@
     eslippers: true,
     harbringer: true,
     intamulet: true,
+    intbelt: true,
     intearring: true,
     intring: true,
     mittens: true,
     ornamentstaff: true,
     oozingterror: true,
+    orbg: true,
     pickaxe: true,
     //quiver: true,
     rod: true,
     shield: true,
     sshield: true,
     stramulet: true,
+    strbelt: true,
     strearring: true,
     strring: true,
     sword: true,
+    tshirt0: true,
+    tshirt1: true,
+    tshirt2: true,
+    tshirt3: true,
+    tshirt4: true,
     t2bow: true,
     vitearring: true,
     vitring: true,
+    warmscarf: true,
     wattire: true,
+    wbook0: true,
     wbreeches: true,
     wcap: true,
     wgloves: true,
@@ -344,11 +359,12 @@
   const isStackableType = type => !!(type && G.items[type]?.s)
   const isUpgradeableType = type => !!(type && G.items[type]?.upgrade)
 
-  const isAutoUpgradeableItem = item =>
-    isUpgradeableType(item?.name) &&
-    item_grade(item) <= autoUpgradeMaxGrade &&
-    item.level <
-    (autoUpgradeLevels[item.name] > -1 ? autoUpgradeLevels[item.name] : autoUpgradeMaxLevel)
+  const isAutoUpgradeableItem = item => isUpgradeableType(item?.name) &&
+    (
+      autoUpgradeLevels[item.name] > -1
+        ? item.level < autoUpgradeLevels[item.name]
+        : item.level < autoUpgradeMaxLevel && item_grade(item) <= autoUpgradeMaxGrade
+    )
   const autoUpgradeableSlot = () => character.items.findIndex(o => isAutoUpgradeableItem(o))
 
   // A "bag" is character.items or, e.g., character.bank['items0']
@@ -420,7 +436,7 @@
   }
 
   // adventure.land/comm "Command" input:
-  // send_cm('Dinger', 'openStandInTown')
+  // send_cm('Dinger', 'changeServer')
   on_cm = (name, data) => {
     if (!characterKeys.includes(name)) return
     if (data === 'changeServer') return changeServer()
