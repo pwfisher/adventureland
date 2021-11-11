@@ -14,14 +14,14 @@
   //
   // CONFIG
   //
-  const autoMap = 'mansion'
-  const autoMob = 'rat'
+  const autoMap = ''
+  const autoMob = 'plantoid'
   const manualMode = false // || TEMPORARILY_TRUE
 
   // ------
 
   const autoAttack = true // && TEMPORARILY_FALSE
-  const autoAvoidWillAggro = !isMeleeType && !manualMode // && TEMPORARILY_FALSE
+  const autoAvoidWillAggro = !isMeleeType && !manualMode && TEMPORARILY_FALSE
   const autoBank = !manualMode // && TEMPORARILY_FALSE
   const autoBankAtGold = 100 * 1000
   const autoDefend = true
@@ -285,9 +285,11 @@
 
     if (autoMap && character.map !== autoMap) {
       console.debug('MOVE: autoMap, ' + autoMap)
+      moveDirection = 'map'
       smartMove(autoMap)
     } else if (autoMob && !getNearestMonster({ mtype: autoMob })) {
       console.debug('MOVE: autoMob, ' + autoMob)
+      moveDirection = 'mob'
       smartMove(autoMob)
     } else if (
       moveDirection &&
@@ -315,9 +317,11 @@
       autoAvoidWillAggro &&
       !autoMelee &&
       willAggroMob &&
+      moveDirection !== 'path' &&
       radarRange(willAggroMob) <= safeRangeFor(willAggroMob)
     ) {
       console.debug('MOVE: avoid, ' + willAggroMob.mtype)
+      moveDirection = 'avoid'
       moveToward(willAggroMob, -rangeChunk)
     } else if (autoStalk && mobToAttack && whichMob !== 'squishy') {
       if (
@@ -341,9 +345,11 @@
         radarRange(mobToAttack) <= safeRangeFor(mobToAttack)
       ) {
         console.debug('MOVE: stalk out, start, ' + mobToAttack.mtype)
+        moveDirection = 'out'
         moveToward(mobToAttack, -rangeChunk)
       } else if (radarRange(mobToAttack) > character.range) {
         console.debug('MOVE: stalk in, start, ' + mobToAttack.mtype)
+        moveDirection = 'in'
         moveToward(mobToAttack, rangeChunk)
       } else {
         // no autoMove (free manual control) within Goldilocks stalking range
@@ -356,13 +362,7 @@
     //
     const uiRange = radarRange(mobToAttack) ? Math.round(radarRange(mobToAttack)) : uiBlank
     const uiWhich = whichMob?.slice(0, 5) || uiBlank
-    const uiDir = smart.moving
-      ? 'smart'
-      : kitePathPoint
-        ? 'path'
-        : kitingMob
-          ? 'kite'
-          : moveDirection || uiBlank
+    const uiDir = moveDirection || uiBlank
     set_message(`${uiRange} ${uiWhich} ${uiDir}`)
 
     if (character.xp < characterLast.xp) game_log(`Lost ${characterLast.xp - character.xp} xp`)
@@ -375,7 +375,7 @@
   //
   // FUNCTIONS
   //
-  const isInjured = player => {
+  function isInjured(player) {
     if (!player || player.rip) return
     if (mobToAttack) return player.hp < player.max_hp - character.attack
     return player.hp < player.max_hp
@@ -394,8 +394,14 @@
         // mob cuts corner
         kitePathPoint = kitePath[nextPointIndex(kitePath, kitePathPoint)]
       if (!kitePathPoint) console.log('[kite] error: missing kitePathPoint')
-      else move(kitePathPoint.x, kitePathPoint.y)
-    } else return moveToward(mob, -rangeChunk)
+      else {
+        moveDirection = 'path'
+        move(kitePathPoint.x, kitePathPoint.y)
+      }
+    } else {
+      moveDirection = 'kite'
+      moveToward(mob, -rangeChunk)
+    }
   }
 
   const closestPoint = points =>
@@ -480,7 +486,6 @@
         ? Math.min(distance, radarRange(mob) - safeRangeFor(mob) - character.speed)
         : distance
     move(character.x + x * safeDistance, character.y + y * safeDistance)
-    moveDirection = distance > 0 ? 'in' : 'out'
   }
 
   function unitVector(from, to) {
@@ -527,10 +532,11 @@
     )
   }
 
-  const partyUp = () =>
+  function partyUp() {
     partyKeys.forEach(key => {
       if (!get_party()[key]) send_party_invite(key)
     })
+  }
 
   const safeRangeFor = mob => {
     if (mob.attack === 0 || (mob.target && mob.target !== character.id)) return 0
@@ -539,7 +545,6 @@
   }
 
   const smartMove = (destination, on_done) => {
-    moveDirection = 'smart'
     if (!smart.moving) smart_move(destination, on_done)
   }
 

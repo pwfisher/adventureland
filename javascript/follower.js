@@ -1,4 +1,4 @@
-;(function () {
+; (function () {
   /**
    * Follower
    *
@@ -73,8 +73,8 @@
   //
   setInterval(tick, tickDelay)
   function tick() {
-    ;({ character: leader, smart: leaderSmart } = get('leader-state') ?? {})
-    ;({ autoHostile } = followerConfig = get('follower-config') || followerConfig)
+    ; ({ character: leader, smart: leaderSmart } = get('leader-state') ?? {})
+      ; ({ autoHostile } = followerConfig = get('follower-config') || followerConfig)
     const { hp, items, max_hp, rip, slots } = character
 
     if (rip) {
@@ -176,7 +176,7 @@
   //
   // FUNCTIONS
   //
-  const isInjured = player => {
+  function isInjured(player) {
     if (!player || player.rip) return
     // if (mobToAttack)
     return player.hp < player.max_hp - character.attack
@@ -346,7 +346,7 @@
   //
   on_cm = (name, data) => {
     if (!characterKeys.includes(name)) return
-    if (data === 'comeToMe') followOrStop({ leader: get(name).character, leaderSmart: get(name).smart  })
+    if (data === 'comeToMe') followOrStop({ leader: get(name).character, leaderSmart: get(name).smart })
   }
 
   on_combined_damage = () =>

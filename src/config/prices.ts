@@ -1,11 +1,11 @@
 const [scroll0, scroll1, scroll2] = [1000, 40000, 1600000]
 
 // Market Prices
-const offeringp = 2.5 * 1000 * 1000
-const wbook0 = 50 * 1000
+const offeringp = 6 * 1000 * 1000 // Primling
 const essenceoffire = 650 * 1000
 
 // Book of Knowledge
+const wbook0 = 50 * 1000
 const wbook1 = 3 * wbook0 / 0.99 + scroll0
 const wbook2 = 3 * wbook1 / 0.68 + scroll0 // 674k
 const wbook2Upsized = 3 * wbook1 / 0.82 + scroll1 // 598k -- UPSIZED scroll CHEAPER
@@ -13,30 +13,30 @@ const wbook2Upsized = 3 * wbook1 / 0.82 + scroll1 // 598k -- UPSIZED scroll CHEA
 // Fire Staff
 const staff = 12400 // vendor retail price
 const firestaff0 = essenceoffire + staff // craft
-const firestaff1 = firestaff0 / 0.9999 + scroll1 // 452k
-const firestaff2 = firestaff1 / 0.97 + scroll1 // 506k -- always 97%
-const firestaff2Upsized = firestaff1 / 0.9999 + scroll2 // 2.0m
-const firestaff3 = firestaff2 / 0.94 + scroll1 // 579k
-const firestaff3Upsized = firestaff2 / 0.9999 + scroll2 // 2.1m
-const firestaff4 = firestaff3 / 0.68 + scroll1 // 891k
-const firestaff4Upsized = firestaff3 / 0.826 + scroll2 // 2.30m
-const firestaff4Primling = firestaff3 / 0.9999 + scroll1 + offeringp // 3.12m
-const firestaff5 = firestaff4 / 0.58 + scroll1 // 1.58m
-const firestaff5Upsized = firestaff4 / 0.706 + scroll2 // 2.86m
-const firestaff5Primling = firestaff4 / 0.8119 + scroll1 + offeringp // 3.64m
-const firestaff5UP = firestaff4 / 0.94 + scroll2 + offeringp // 5.05m
-const firestaff6 = firestaff5 / 0.38 + scroll1 // 4.19m
-const firestaff6Upsized = firestaff5 / 0.466 + scroll2 // 4.98m
-const firestaff6Primling = firestaff5 / 0.5471 + scroll1 + offeringp // 5.42m
-const firestaff6UP = firestaff5 / 0.6675 + scroll2 + offeringp // 6.46m
-const firestaff7 = firestaff6 / 0.24 + scroll1 // 17.49m
-const firestaff7Upsized = firestaff6 / 0.298 + scroll2 // 15.66m
-const firestaff7Primling = firestaff6 / 0.3359 + scroll1 + offeringp // 15.01m
-const firestaff7UP = firestaff6 / 0.4172 + scroll2 + offeringp // 14.14m -- winner: UPSIZE + PRIMLING
-const firestaff8 = firestaff7UP / 0.178 + scroll2 // 81.03m
-const firestaff8Primling = firestaff7UP / 0.262 + scroll2 + offeringp // 58.07m -- winner: PRIMLING
-const firestaff9 = firestaff8Primling / 0.0706 + scroll2 // 824.1m
-const firestaff9Primling = firestaff8Primling / 0.0922 + scroll2 + offeringp // 633.9m -- winner: PRIMLING
+const firestaff1 = firestaff0 / 0.9999 + scroll1
+const firestaff2 = firestaff1 / 0.97 + scroll1 // always 97%
+const firestaff2Upsized = firestaff1 / 0.9999 + scroll2
+const firestaff3 = firestaff2 / 0.94 + scroll1
+const firestaff3Upsized = firestaff2 / 0.9999 + scroll2
+const firestaff4 = firestaff3 / 0.68 + scroll1
+const firestaff4Upsized = firestaff3 / 0.826 + scroll2
+const firestaff4Primling = firestaff3 / 0.9999 + scroll1 + offeringp
+const firestaff5 = firestaff4 / 0.58 + scroll1
+const firestaff5Upsized = firestaff4 / 0.706 + scroll2
+const firestaff5Primling = firestaff4 / 0.8119 + scroll1 + offeringp
+const firestaff5UP = firestaff4 / 0.94 + scroll2 + offeringp
+const firestaff6 = firestaff5 / 0.38 + scroll1
+const firestaff6Upsized = firestaff5 / 0.466 + scroll2
+const firestaff6Primling = firestaff5 / 0.5471 + scroll1 + offeringp
+const firestaff6UP = firestaff5 / 0.6675 + scroll2 + offeringp
+const firestaff7 = firestaff6 / 0.24 + scroll1
+const firestaff7Upsized = firestaff6 / 0.298 + scroll2
+const firestaff7Primling = firestaff6 / 0.3359 + scroll1 + offeringp
+const firestaff7UP = firestaff6 / 0.4172 + scroll2 + offeringp // winner: UPSIZE + PRIMLING
+const firestaff8 = firestaff7UP / 0.178 + scroll2
+const firestaff8Primling = firestaff7UP / 0.262 + scroll2 + offeringp // winner: PRIMLING
+const firestaff9 = firestaff8Primling / 0.0706 + scroll2
+const firestaff9Primling = firestaff8Primling / 0.0922 + scroll2 + offeringp // winner: PRIMLING
 
 console.log({
   firestaff0: Math.round(firestaff0).toLocaleString(),
@@ -70,8 +70,4 @@ console.log({
   wbook2Upsized: Math.round(wbook2Upsized).toLocaleString(),
 })
 
-// export {
-//   firestaff1,
-//   wbook2,
-//   wbook2Upsized,
-// }
+// export { }

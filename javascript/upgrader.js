@@ -83,6 +83,9 @@
     armorbox: true,
     ascale: true,
     bcape: true,
+    bfur: true,
+    candy0: true,
+    candy1: true,
     cape: true,
     cring: true,
     crossbow: true,
@@ -96,34 +99,39 @@
     elixirstr1: true,
     elixirvit1: true,
     eslippers: true,
+    gbow: true,
     harbringer: true,
     intamulet: true,
     intbelt: true,
     intearring: true,
     intring: true,
+    mbelt: true,
     mittens: true,
     ornamentstaff: true,
     oozingterror: true,
     orbg: true,
     pickaxe: true,
-    //quiver: true,
+    pumpkinspice: true,
+    // quiver: true,
     rod: true,
     shield: true,
+    skullamulet: true,
+    // spookyamulet: true,
     sshield: true,
-    stramulet: true,
+    // stramulet: true,
     strbelt: true,
     strearring: true,
     strring: true,
     sword: true,
-    tshirt0: true,
-    tshirt1: true,
-    tshirt2: true,
-    tshirt3: true,
-    tshirt4: true,
+    // tshirt0: true,
+    // tshirt1: true,
+    // tshirt2: true,
+    // tshirt3: true,
+    // tshirt4: true,
     t2bow: true,
-    vitearring: true,
-    vitring: true,
-    warmscarf: true,
+    // vitearring: true,
+    // vitring: true,
+    // warmscarf: true,
     wattire: true,
     wbook0: true,
     wbreeches: true,
@@ -172,7 +180,7 @@
     'pmace',
     'rattail',
     'ringsj',
-    'shadowstone',
+    // 'shadowstone',
     'shoes',
     'shoes1',
     'slimestaff',
@@ -331,10 +339,11 @@
     smart_move({ map: 'main', x: 101, y: -145 }, () => move(101, -144))
   }
 
-  const partyUp = () =>
+  function partyUp() {
     partyKeys.forEach(key => {
       if (!get_party()[key]) send_party_invite(key)
     })
+  }
 
   const compoundAny = () =>
     character.items.some(item => {
@@ -347,10 +356,13 @@
       )
         return
       const slots = bagSlots(item, character.items)
-      const scrollSlot = bagSlot({ type: 'cscroll' + item_grade(item) }, character.items)
+      const scrollSlot = bagSlot({ type: 'cscroll' + compoundScrollGrade(item) }, character.items)
       if (scrollSlot > -1) return compound(slots[0], slots[1], slots[2], scrollSlot)
       else set_message('need cscroll' + item_grade(item))
     })
+
+  // Upsize compound scroll for all items at level 1
+  const compoundScrollGrade = item => item_grade(item) + (item.level === 1 ? 1 : 0)
 
   const isNotNull = x => x !== null
 
