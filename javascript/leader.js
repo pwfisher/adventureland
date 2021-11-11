@@ -21,7 +21,7 @@
   // ------
 
   const autoAttack = true // && TEMPORARILY_FALSE
-  const autoAvoidWillAggro = !isMeleeType && !manualMode && TEMPORARILY_FALSE
+  const autoAvoidWillAggro = !isMeleeType && !manualMode // && TEMPORARILY_FALSE
   const autoBank = !manualMode // && TEMPORARILY_FALSE
   const autoBankAtGold = 100 * 1000
   const autoDefend = true
@@ -149,7 +149,7 @@
       if (autoRespawn) respawn()
       return
     }
-    if (smart.moving && moveDirection !== 'escape') resetState()
+    if (smart.moving && moveDirection !== 'esc') resetState()
 
     // ----
 
@@ -296,10 +296,10 @@
       !hasMoved &&
       !smart.moving &&
       escapeMob &&
-      moveDirection !== 'escape'
+      !['esc', 'path'].includes(moveDirection)
     ) {
       console.debug('MOVE: escape, ' + escapeMob.mtype)
-      moveDirection = 'escape'
+      moveDirection = 'esc'
       moveToward(
         escapeMob,
         distance(character, escapeMob) + safeRangeFor(escapeMob) + character.speed * 2
@@ -308,11 +308,13 @@
       autoKite &&
       !autoMelee &&
       aggroMob &&
-      canKite(aggroMob) &&
-      radarRange(aggroMob) <= safeRangeFor(aggroMob)
+      canKite(aggroMob)
     ) {
-      console.debug('MOVE: kite, ' + aggroMob.mtype)
-      kite(aggroMob)
+      if (radarRange(aggroMob) <= safeRangeFor(aggroMob)) {
+        console.debug('MOVE: kite, ' + aggroMob.mtype)
+        kite(aggroMob)
+      }
+      // else moveDirection is sticky -- 'path' or 'kite'
     } else if (
       autoAvoidWillAggro &&
       !autoMelee &&
@@ -424,7 +426,7 @@
   const nextPointIndex = (points, point) => (pointIndex(points, point) + 1) % points.length
 
   // "radar" caches "radar pings" [{ mob, range }] for performance
-  const updateRadar = () => {
+  function updateRadar() {
     radar = []
     for (id in parent.entities) {
       const mob = parent.entities[id]
@@ -589,12 +591,12 @@
     return new Promise((resolve, reject) => {
       parent.party_list.forEach(giveMeYourStuff)
       moveDirection = 'bank'
-      smart_move('bank', () => {
+      smart_move('bank', () => setTimeout(() => {
         if (character.map !== 'bank') return reject()
         bank_deposit(123456789)
         console.log('bankStoreAll')
         bankStoreAll(resolve)
-      })
+      }, 100))
     })
   }
 
@@ -707,6 +709,7 @@
     if (characterKeys.includes(key)) accept_party_invite(key)
   }
 
+  // Usage: `send_cm('Finger', 'useBank')`
   on_cm = (name, data) => {
     if (!characterKeys.includes(name)) return
     if (data === 'useBank') return useBank()

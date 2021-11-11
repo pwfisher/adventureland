@@ -217,7 +217,7 @@
   const getDoorPoint = ([x, y, _h, _w, map]) => ({ map, x, y })
 
   // "radar" caches "radar pings" [{ mob, range }] for performance
-  const updateRadar = () => {
+  function updateRadar() {
     radar = []
     for (id in parent.entities) {
       const mob = parent.entities[id]
