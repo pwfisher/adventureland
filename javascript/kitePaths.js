@@ -1,10 +1,21 @@
 const caveLoop = [
-  { x: 375, y: -200 }, // lower left
-  { x: 575, y: -200 },
-  { x: 650, y: -350 },
-  { x: 575, y: -475 },
-  { x: 400, y: -500 },
-  { x: 300, y: -350 },
+  { x: 295, y: -245 }, // southwest
+  { x: 355, y: -220 },
+  { x: 415, y: -185 },
+  { x: 480, y: -185 },
+  { x: 560, y: -190 }, // southeast
+  { x: 600, y: -225 },
+  { x: 650, y: -310 },
+  { x: 650, y: -395 },
+  { x: 615, y: -470 },
+  { x: 560, y: -515 },
+  { x: 480, y: -525 },
+  { x: 405, y: -530 }, // north
+  { x: 340, y: -510 },
+  { x: 290, y: -475 },
+  { x: 260, y: -415 },
+  { x: 255, y: -350 },
+  { x: 265, y: -295 },
 ]
 
 const tunnelLoop = [
@@ -50,36 +61,35 @@ const kitePaths = {
       // from west
       { x: -50, y: -350 },
       { x: 0, y: -200 },
-      caveLoop[0],
-      caveLoop[1],
-      caveLoop[2],
-      caveLoop[3],
-      caveLoop[4],
-      caveLoop[5],
+      ...caveLoop,
       caveLoop[0],
     ],
     [
       // from north
       { x: 400, y: -800 },
-      caveLoop[4],
-      caveLoop[5],
-      caveLoop[0],
-      caveLoop[1],
-      caveLoop[2],
-      caveLoop[3],
-      caveLoop[4],
+      { x: 400, y: -750 },
+      { x: 400, y: -700 },
+      { x: 400, y: -650 },
+      { x: 400, y: -600 },
+      ...caveloop.slice(11),
+      ...caveLoop.slice(0, 12),
     ],
     [
       // from south
       { x: 1000, y: 75 },
+      { x: 950, y: 75 },
+      { x: 900, y: 75 },
+      { x: 850, y: 75 },
+      { x: 800, y: 70 },
+      { x: 750, y: 65 },
+      { x: 700, y: 60 },
+      { x: 650, y: 55 },
       { x: 600, y: 50 },
-      caveLoop[1],
-      caveLoop[2],
-      caveLoop[3],
-      caveLoop[4],
-      caveLoop[5],
-      caveLoop[0],
-      caveLoop[1],
+      { x: 590, y: -15 },
+      { x: 575, y: -115 },
+      { x: 600, y: 50 },
+      ...caveloop.slice(4),
+      ...caveLoop.slice(0, 5),
     ],
   ],
   desertland: [
@@ -98,6 +108,26 @@ const kitePaths = {
       { x: -600, y: -475 },
       { x: -625, y: -500 },
     ],
+    [
+      // black scorpion (primling)
+      // smart_move('bscorpion')
+      { x: -525, y: -1313, },
+      { x: -540, y: -1285, },
+      { x: -525, y: -1234, },
+      { x: -504, y: -1204, },
+      { x: -469, y: -1179, },
+      { x: -426, y: -1171, },
+      { x: -372, y: -1182, },
+      { x: -324, y: -1210, },
+      { x: -300, y: -1260, },
+      { x: -322, y: -1319, },
+      { x: -363, y: -1350, },
+      { x: -411, y: -1372, },
+      { x: -455, y: -1375, },
+      { x: -496, y: -1356, },
+      { x: -529, y: -1333, },
+      { x: -525, y: -1313, },
+    ]
   ],
   tunnel: [[...tunnelLoop, tunnelLoop[0]]],
 }

@@ -57,7 +57,8 @@
     wingedboots: 2, // then manual scroll1
     wshoes: 9,
     xmashat: 8,
-    xmace: 6,
+    xmaspants: 8,
+    xmace: 7,
   }
   const bankPackKeys = ['items0', 'items1']
   const characterKeys = [
@@ -94,10 +95,18 @@
     dexearring: true,
     dexring: true,
     ecape: true,
+    elixirdex0: true,
     elixirdex1: true,
+    elixirdex2: true,
+    elixirint0: true,
     elixirint1: true,
+    elixirint2: true,
+    elixirstr0: true,
     elixirstr1: true,
+    elixirstr2: true,
+    elixirvit0: true,
     elixirvit1: true,
+    elixirvit2: true,
     eslippers: true,
     gbow: true,
     harbringer: true,

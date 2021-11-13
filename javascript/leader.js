@@ -14,8 +14,8 @@
   //
   // CONFIG
   //
-  const autoMap = ''
-  const autoMob = 'plantoid'
+  const autoMap = 'arena'
+  const autoMob = ''
   const manualMode = false // || TEMPORARILY_TRUE
 
   // ------
@@ -26,6 +26,7 @@
   const autoBankAtGold = 100 * 1000
   const autoDefend = true
   const autoElixir = true
+  const autoEscape = true && TEMPORARILY_FALSE
   const autoHeal = true
   const autoHostile = false
   const autoKite = !isMeleeType // && TEMPORARILY_FALSE
@@ -58,7 +59,7 @@
   ]
   const emitDelay = Math.max(200, character.ping * 3)
   const partyKeys = ['Hunger', 'Finger', 'Zinger'].filter(x => x !== character.id).slice(0, 2)
-  const preyAtkMax = 1000
+  const preyAtkMax = 1600
   const preyXpMin = 300
   const priorityMobTypes = [
     'dracul',
@@ -95,6 +96,7 @@
   //
   let hasMoved
   let kitingMob = null
+  let kitePath = null // [{ x, y}]
   let kitePathPoint = null // { x, y }
   let lastPotion = new Date()
   let mobs = {}
@@ -105,6 +107,7 @@
 
   const resetState = () => {
     kitingMob = null
+    kitePath = null
     kitePathPoint = null
     mobs = {}
     mobToAttack = null
@@ -230,7 +233,7 @@
       willAggroMob,
     }
     if (kitingMob && !aggroMob) {
-      kitingMob = kitePathPoint = null
+      kitingMob = kitePath = kitePathPoint = null
       stop()
     }
     const canSquish =
@@ -292,6 +295,7 @@
       moveDirection = 'mob'
       smartMove(autoMob)
     } else if (
+      autoEscape &&
       moveDirection &&
       !hasMoved &&
       !smart.moving &&
@@ -385,16 +389,18 @@
 
   const canKite = mob => character.speed > mob.speed && character.range > mob.range
 
+  /**
+   * State: kitingMob, kitePath, kitePathPoint
+   */
   const kite = mob => {
-    if (!mob) console.log('[kite] error: missing mob')
-    const paths = kitePaths[character.map]
-    const kitePath = closestPath(paths)
+    if (!mob) return console.log('[kite] error: missing mob')
+    if (!kitePath) kitePath = closestPath(kitePaths[character.map])
     kitingMob = mob
     if (autoKitePath && kitePath) {
       if (!kitePathPoint) kitePathPoint = closestSafePoint(kitePath, mob)
       else if (distance(mob, kitePathPoint) < safeRangeFor(mob) * 1.5)
-        // mob cuts corner
-        kitePathPoint = kitePath[nextPointIndex(kitePath, kitePathPoint)]
+        // kitePathPoint = kitePath[nextPointIndex(kitePath, kitePathPoint)]
+        kitePathPoint = closestSafePoint(kitePath, mob)
       if (!kitePathPoint) console.log('[kite] error: missing kitePathPoint')
       else {
         moveDirection = 'path'
@@ -543,7 +549,7 @@
   const safeRangeFor = mob => {
     if (mob.attack === 0 || (mob.target && mob.target !== character.id)) return 0
     if (mob.attack < character.attack && mob.range > character.range) return 0
-    return mob.range + mob.speed
+    return mob.range + mob.speed * 1.3
   }
 
   const smartMove = (destination, on_done) => {
