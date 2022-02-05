@@ -91,7 +91,7 @@
     //
     // HEAL
     //
-    const partyPlayers = parent.party_list.map(k => parent.entities[k])
+    const partyPlayers = parent.party_list.map(x => parent.entities[x])
     const injuredList = partyPlayers.filter(isInjured)
     if (isInjured(character)) injuredList.push(character)
 
@@ -179,7 +179,8 @@
   function isInjured(player) {
     if (!player || player.rip) return
     // if (mobToAttack)
-    return player.hp < player.max_hp - character.attack
+    return player.hp < 0.8 * player.max_hp
+    // return player.hp < player.max_hp - character.attack
     // return player.hp < player.max_hp
   }
 

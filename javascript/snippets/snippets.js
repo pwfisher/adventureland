@@ -122,4 +122,6 @@ game_log('Distance: ' + distanceToNPC('scrolls')) // 399.6 worked, 401.9 was too
 
 parent.socket.emit('destroy', { num: 7, q: 9999 })
 
+auto_craft('wingedboots')
+
 // end snippets.js

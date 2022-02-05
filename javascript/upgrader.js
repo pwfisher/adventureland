@@ -37,28 +37,39 @@
     bataxe: 5,
     cape: 8,
     coat: 8,
-    crossbow: 5,
+    crossbow: 0,
+    dagger: 8,
     ecape: 6,
-    eslippers: 7,
+    eslippers: 8,
+    epyjamas: 8,
     fireblade: 7,
     firestaff: 6, // optimal: min scroll to lvl 6, then upsize + primling
-    harbringer: 3,
+    harbringer: 0,
+    mittens: 8,
     pickaxe: 3,
     quiver: 8,
     rod: 3,
     shield: 7,
     staff: 0,
     sword: 8,
-    t2bow: 7,
-    wattire: 9,
-    wbreeches: 9,
-    wcap: 9,
-    wgloves: 9,
+    t2bow: 8,
+    warmscarf: 8,
+    wattire: 8,
+    wbreeches: 8,
+    wcap: 8,
+    wgloves: 8,
     wingedboots: 2, // then manual scroll1
-    wshoes: 9,
+    wshoes: 8,
+    xarmor: 3,
+    xboots: 3,
+    xgloves: 3,
+    xhelmet: 3,
+    xmace: 8,
     xmashat: 8,
     xmaspants: 8,
-    xmace: 7,
+    xmasshoes: 8,
+    xmassweater: 8,
+    xpants: 3,
   }
   const bankPackKeys = ['items0', 'items1']
   const characterKeys = [
@@ -85,16 +96,20 @@
     ascale: true,
     bcape: true,
     bfur: true,
+    broom: true,
     candy0: true,
     candy1: true,
     cape: true,
     cring: true,
     crossbow: true,
+    dagger: true,
     dexamulet: true,
     dexbelt: true,
     dexearring: true,
     dexring: true,
     ecape: true,
+    eears: true,
+    epyjamas: true,
     elixirdex0: true,
     elixirdex1: true,
     elixirdex2: true,
@@ -109,40 +124,50 @@
     elixirvit2: true,
     eslippers: true,
     gbow: true,
+    gcape: true,
     harbringer: true,
     intamulet: true,
     intbelt: true,
     intearring: true,
     intring: true,
     mbelt: true,
+    mistletoe: true,
     mittens: true,
     ornamentstaff: true,
     oozingterror: true,
     orbg: true,
     pickaxe: true,
+    poison: true,
     pumpkinspice: true,
     // quiver: true,
     rod: true,
+    santasbelt: true,
     shield: true,
     skullamulet: true,
+    spidersilk: true,
     // spookyamulet: true,
     sshield: true,
     // stramulet: true,
     strbelt: true,
     strearring: true,
-    strring: true,
+    // strring: true,
+    sweaterhs: true,
     sword: true,
+    tigercape: true,
+    tigerhelmet: true,
+    tigershield: true,
     // tshirt0: true,
     // tshirt1: true,
     // tshirt2: true,
     // tshirt3: true,
-    // tshirt4: true,
+    tshirt4: true,
     t2bow: true,
-    // vitearring: true,
+    vitearring: true,
     // vitring: true,
     // warmscarf: true,
     wattire: true,
     wbook0: true,
+    wbookhs: true, // book of cheer
     wbreeches: true,
     wcap: true,
     wgloves: true,
@@ -153,6 +178,7 @@
     xmashat: true,
     xmaspants: true,
     xmasshoes: true,
+    xmassweater: true,
   }
 
   const autoSellTypes = [
@@ -160,16 +186,19 @@
     'basher',
     'bwing',
     'beewings',
+    'bowofthedead',
+    'candycanesword',
     'cclaw',
     'crabclaw',
     'cshell',
     'coat',
     'coat1',
-    'dagger',
+    // 'dagger',
     'dstones',
     'frogt',
     'gloves',
     'gloves1',
+    'gphelmet',
     'gslime',
     'harmor',
     'hbow',
@@ -182,23 +211,30 @@
     'hpants',
     'hpbelt',
     'ijx',
+    'jacko',
     'lspores',
     'maceofthedead',
+    'merry', // bow of the merry ranger
     'pants',
     'pants1',
     'pmace',
+    'pmaceofthedead',
+    'rapier',
     'rattail',
+    'rednose',
     'ringsj',
     // 'shadowstone',
     'shoes',
     'shoes1',
     'slimestaff',
     'smush',
+    'snowball',
     'spear',
     'spores',
     'sstinger',
     //sword',
     'throwingstars',
+    // 'warmscarf',
     // 'whiteegg',
   ].filter(x => x !== autoUpgradeBuyType)
 
@@ -264,7 +300,10 @@
             { type: 'scroll' + item_grade(character.items[upgradeSlot]) },
             character.items
           )
-          if (scrollSlot) upgrade(upgradeSlot, scrollSlot)
+          if (scrollSlot) {
+            if (character.items[upgradeSlot].level > 1) use_skill('massproductionpp')
+            upgrade(upgradeSlot, scrollSlot)
+          }
         } else if (autoUpgradeBuyType && !character.items[0]) buy(autoUpgradeBuyType)
       }
     }
@@ -345,7 +384,7 @@
   }
 
   function openStandInTown() {
-    smart_move({ map: 'main', x: 101, y: -145 }, () => move(101, -144))
+    smart_move({ map: 'main', x: 118, y: -135 }, () => move(118, -134))
   }
 
   function partyUp() {
@@ -366,7 +405,10 @@
         return
       const slots = bagSlots(item, character.items)
       const scrollSlot = bagSlot({ type: 'cscroll' + compoundScrollGrade(item) }, character.items)
-      if (scrollSlot > -1) return compound(slots[0], slots[1], slots[2], scrollSlot)
+      if (scrollSlot > -1) {
+        use_skill('massproductionpp')
+        return compound(slots[0], slots[1], slots[2], scrollSlot)
+      }
       else set_message('need cscroll' + item_grade(item))
     })
 

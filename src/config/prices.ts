@@ -2,7 +2,7 @@ const [scroll0, scroll1, scroll2] = [1000, 40000, 1600000]
 
 // Market Prices
 const offeringp = 6 * 1000 * 1000 // Primling
-const essenceoffire = 650 * 1000
+const essenceoffire = 750 * 1000
 
 // Book of Knowledge
 const wbook0 = 50 * 1000
@@ -12,7 +12,7 @@ const wbook2Upsized = 3 * wbook1 / 0.82 + scroll1 // 598k -- UPSIZED scroll CHEA
 
 // Fire Staff
 const staff = 12400 // vendor retail price
-const firestaff0 = essenceoffire + staff // craft
+const firestaff0 = essenceoffire + staff // auto_craft('firestaff')
 const firestaff1 = firestaff0 / 0.9999 + scroll1
 const firestaff2 = firestaff1 / 0.97 + scroll1 // always 97%
 const firestaff2Upsized = firestaff1 / 0.9999 + scroll2

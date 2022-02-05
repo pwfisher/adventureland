@@ -23,7 +23,7 @@
   const autoAttack = true // && TEMPORARILY_FALSE
   const autoAvoidWillAggro = !isMeleeType && !manualMode // && TEMPORARILY_FALSE
   const autoBank = !manualMode // && TEMPORARILY_FALSE
-  const autoBankAtGold = 100 * 1000
+  const autoBankAtGold = 200 * 1000
   const autoDefend = true
   const autoElixir = true
   const autoEscape = true && TEMPORARILY_FALSE
@@ -58,7 +58,7 @@
     'Zinger',
   ]
   const emitDelay = Math.max(200, character.ping * 3)
-  const partyKeys = ['Hunger', 'Finger', 'Zinger'].filter(x => x !== character.id).slice(0, 2)
+  const partyKeys = ['Hunger', 'Zinger', 'Finger'].filter(x => x !== character.id).slice(0, 2)
   const preyAtkMax = 1600
   const preyXpMin = 300
   const priorityMobTypes = [
@@ -444,8 +444,12 @@
   }
   const radarRange = mob => radar.find(o => o.mob === mob)?.range
   const minRange = (a, b) => (a.range < b.range ? a : b)
-  const getClosestRadarPing = pings => pings.reduce(minRange, { range: Infinity })?.mob
-  const getNearestMonster = props => getClosestRadarPing(getRadarPings({ ...props }))
+  function getClosestRadarPing(pings) {
+    return pings.reduce(minRange, { range: Infinity })?.mob
+  }
+  function getNearestMonster(props) {
+    return getClosestRadarPing(getRadarPings({ ...props }))
+  }
   const getNearestHostile = props => getClosestRadarPing(getRadarPings({ ...props, player: true }))
 
   const getRadarPings = (props = {}) =>
@@ -549,7 +553,7 @@
   const safeRangeFor = mob => {
     if (mob.attack === 0 || (mob.target && mob.target !== character.id)) return 0
     if (mob.attack < character.attack && mob.range > character.range) return 0
-    return mob.range + mob.speed * 1.3
+    return mob.range + mob.speed * 1.5
   }
 
   const smartMove = (destination, on_done) => {
