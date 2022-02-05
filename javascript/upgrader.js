@@ -15,6 +15,8 @@
   const autoBuyDelay = 30 * 1000
   const autoCompound = true
   const autoCompoundLevelMax = 3
+  const autoChangeClothing = true
+  const autoChangeClothingDelay = 2000
   const autoExchange = true
   const autoLoot = false
   const autoLuck = true
@@ -144,6 +146,7 @@
     santasbelt: true,
     shield: true,
     skullamulet: true,
+    smoke: true,
     spidersilk: true,
     // spookyamulet: true,
     sshield: true,
@@ -238,6 +241,21 @@
     // 'whiteegg',
   ].filter(x => x !== autoUpgradeBuyType)
 
+  const ownedSkins = [
+    'marmor10g',
+    'marmor11b',
+    'marmor12a',
+    'marmor12b',
+    'marmor2g',
+    'marmor3d',
+    'marmor5g',
+    'mbody1h',
+    'sarmor1f',
+    'sarmor1g',
+  ]
+
+  const ownedHats = ['hat212', 'hat224', 'hat404']
+
   //
   // STATE
   //
@@ -271,6 +289,7 @@
     //
     // ACTIONS
     //
+    if (autoChangeClothing) changeClothing()
     if (autoParty) partyUp()
     if (autoPotion) use_hp_or_mp()
     if (autoRain) makeItRain()
@@ -523,6 +542,19 @@
       game_log(`[setItemInLS] key: ${key}, error: ${e}`)
       return false
     }
+  }
+
+  const getRandomElement = (array) => array[Math.floor(Math.random() * array.length)]
+  // const altRandomElement = (array) => shuffle([...array])[0] // less code but slow
+
+  let changedClothingAt = 0
+
+  function changeClothing () {
+    const now = Date.now()
+    if (now - changedClothingAt < autoChangeClothingDelay) return
+    changedClothingAt = now
+    parent.socket.emit("cx", { slot: "skin", name: getRandomElement(ownedSkins) })
+    parent.socket.emit("cx", { slot: "hat", name: getRandomElement(ownedHats) })
   }
 })()
 // end upgrader.js

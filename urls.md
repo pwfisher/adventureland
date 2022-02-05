@@ -13,7 +13,7 @@ Docs
 - Docs https://adventure.land/docs
 - Docs https://github.com/kaansoral/adventureland
 - smart_move https://adventure.land/docs/code/functions/smart_move
-  - It is an elegant overloaded function signature, but hard to follow without TypeScript.
+  - Simple function signature is heavily overloaded. Hard to follow, especially without TypeScript.
 - Unofficial Docs https://nexusnull.github.io/adventureland (NexusNull online 2021-04)
 - Sin's Guide https://steamcommunity.com/sharedfiles/filedetails/?id=1636142608 (SinBot online 2021-04)
 - https://adventureland.fandom.com/wiki/AdventureLand_Wiki
