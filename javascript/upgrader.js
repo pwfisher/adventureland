@@ -254,7 +254,21 @@
     'sarmor1g',
   ]
 
-  const ownedHats = ['hat212', 'hat224', 'hat404']
+  const ownedHats = [
+    'hat103',
+    'hat205',
+    'hat209',
+    'hat212',
+    'hat217',
+    'hat224',
+    'hat301',
+    'hat306',
+    'hat319',
+    'hat321',
+    'hat402',
+    'hat404',
+    'hat405',
+  ]
 
   //
   // STATE

@@ -14,7 +14,7 @@
   //
   let autoHostile = false
   const autoPriority = true
-  const priorityMobTypes = ['froggie', 'goldenbat']
+  const priorityMobTypes = ['froggie', 'goldenbat', 'pinkgoo', 'tiger']
 
   const autoAttack = true
   const autoDefend = true

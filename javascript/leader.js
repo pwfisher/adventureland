@@ -68,7 +68,9 @@
     'greenjr',
     'goldenbat',
     'phoenix',
+    'pinkgoo',
     'skeletor',
+    'tiger',
     'wabbit',
   ]
   const rangeChunk = 50
